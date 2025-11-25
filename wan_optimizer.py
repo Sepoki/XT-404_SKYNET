@@ -6,7 +6,7 @@ from comfy.sd import VAE
 import gc
 
 # ==============================================================================
-# ARCHITECTURE: WAN OPTIMIZER V14 (VRAM FIX)
+# ARCHITECTURE: WAN OPTIMIZER V14.2 (BACKEND SAFEGUARD)
 # SPECIALIZATION: ATOMIC DECODING & ZERO LAG
 # ==============================================================================
 
@@ -19,7 +19,6 @@ class WanState:
 class Wan_TeaCache_Patch:
     """
     V13 OBSIDIAN: Adaptive Stride, Dynamic Resolution & Topology Guard.
-    (Code inchangé car fonctionnel et performant)
     """
     @classmethod
     def INPUT_TYPES(s):
@@ -98,10 +97,7 @@ class Wan_TeaCache_Patch:
 
 class Wan_Hybrid_VRAM_Guard:
     """
-    V14 ATOMIC GUARD: FIX CRITICAL VRAM SPIKE & LAG.
-    - Force Tiling Spatial (512px) pour éviter l'explosion mémoire.
-    - Décodage atomique (1 frame latente à la fois).
-    - Suppression du Lag (Async Transfer).
+    V14.2 ATOMIC GUARD: BACKEND CHECK & SAFE ASYNC.
     """
     @classmethod
     def INPUT_TYPES(s):
@@ -124,36 +120,32 @@ class Wan_Hybrid_VRAM_Guard:
         latents = samples["samples"]
         
         # 1. CONFIGURATION STRICTE DU TILING (Anti-OOM)
-        # On force le VAE à travailler par petits carrés de 512px
         try:
             vae.first_stage_model.enable_tiling(True)
             vae.first_stage_model.tile_sample_min_size = tile_size_spatial
             vae.first_stage_model.tile_latent_min_size = int(tile_size_spatial // 8)
-            # Paramètres de chevauchement pour éviter les coutures (Seams)
             vae.first_stage_model.tile_overlap_factor = 0.25 
         except Exception as e:
-            print(f"! [Wan Guard] Tiling activation warning: {e}")
+            # Ce warning est normal sur certains wrappers VAE Wan qui n'exposent pas enable_tiling standard
+            # On le garde silencieux ou informatif
+            pass 
 
         device = mm.get_torch_device()
         work_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
         final_dtype = torch.float32 if output_precision == "fp32" else torch.float16
         
-        # Dimensions
-        # Wan Latents: (Batch, Channels, Time, Height, Width) ou (B, C, H, W)
         shape = latents.shape
         is_5d = len(shape) == 5
         total_input_frames = shape[2] if is_5d else shape[0]
 
-        print(f">> [Wan Guard V14] Atomic Decode. Input: {shape} | Chunk: {temporal_chunk_size} | Tiling: {tile_size_spatial}px")
+        print(f">> [Wan Guard V14.2] Atomic Decode. Input: {shape} | Chunk: {temporal_chunk_size} | Tiling: {tile_size_spatial}px")
         
-        # 2. NETTOYAGE INITIAL (UNE SEULE FOIS)
         mm.soft_empty_cache()
         gc.collect()
 
         final_tensor = None
         current_write_idx = 0
         
-        # Stream pour le transfert asynchrone (Zéro Lag)
         transfer_stream = torch.cuda.Stream() if torch.cuda.is_available() else None
 
         pbar = comfy.utils.ProgressBar(total_input_frames)
@@ -163,17 +155,15 @@ class Wan_Hybrid_VRAM_Guard:
             for i in range(0, total_input_frames, temporal_chunk_size):
                 end_i = min(i + temporal_chunk_size, total_input_frames)
                 
-                # A. Chargement Léger (Slicing)
+                # A. Chargement Léger
                 if is_5d: 
-                    # (B, C, T_slice, H, W)
                     chunk_latents = latents[:, :, i:end_i, :, :].to(device, non_blocking=True)
                 else: 
                     chunk_latents = latents[i:end_i].to(device, non_blocking=True)
                 
-                # B. Décodage Protégé (Autocast + Tiling implicite)
+                # B. Décodage
                 try:
                     with torch.autocast(device.type, dtype=work_dtype):
-                        # decode_tiled est plus sûr si disponible, sinon decode standard (qui utilise le tiling configuré plus haut)
                         if hasattr(vae, "decode_tiled"):
                             chunk_image = vae.decode_tiled(chunk_latents, tile_x=tile_size_spatial, tile_y=tile_size_spatial)
                         else:
@@ -182,75 +172,59 @@ class Wan_Hybrid_VRAM_Guard:
                     print(f"!! [Wan Guard] OOM detected on chunk {i}. Clearing Cache & Retrying...")
                     mm.soft_empty_cache()
                     torch.cuda.empty_cache()
-                    chunk_image = vae.decode(chunk_latents) # Retry brutal
+                    chunk_image = vae.decode(chunk_latents)
 
-                # Normalisation dimensions (Remove Batch dim if 5D decoded to 5D)
                 if len(chunk_image.shape) == 5: 
                     chunk_image = chunk_image.squeeze(0) # (T, H, W, C)
 
                 out_frames = chunk_image.shape[0]
                 h, w, c = chunk_image.shape[1], chunk_image.shape[2], chunk_image.shape[3]
 
-                # C. Allocation Intelligente (Premier Tour Uniquement)
+                # C. Allocation
                 if final_tensor is None:
-                    # Estimer la taille totale
-                    expansion_ratio = out_frames / (end_i - i) # Combien de frames images pour 1 frame latent ?
+                    expansion_ratio = out_frames / (end_i - i)
                     estimated_total_frames = int(total_input_frames * expansion_ratio)
-                    
-                    # Allocation en RAM CPU (Pinned pour vitesse)
                     try:
                         final_tensor = torch.empty((estimated_total_frames, h, w, c), dtype=final_dtype, device="cpu", pin_memory=True)
                     except:
-                        # Fallback si pas assez de RAM pour Pinning
                         final_tensor = torch.empty((estimated_total_frames, h, w, c), dtype=final_dtype, device="cpu")
 
-                # D. Transfert Zéro-Lag (GPU -> CPU)
+                # D. Transfert Zéro-Lag (CORRECTIF BACKEND + RACE CONDITION)
                 if enable_cpu_offload and transfer_stream:
-                    # On attend que le GPU ait fini de décoder CE chunk
                     event = torch.cuda.Event()
                     event.record()
                     transfer_stream.wait_event(event)
                     
                     with torch.cuda.stream(transfer_stream):
-                        # Copie asynchrone vers la RAM
-                        # Gestion de la taille tampon
                         if current_write_idx + out_frames <= final_tensor.shape[0]:
                             final_tensor[current_write_idx : current_write_idx + out_frames].copy_(chunk_image, non_blocking=True)
+                            
+                            # PATCH CRITIQUE V14.2 : Vérification du device avant record_stream
+                            if hasattr(chunk_image, 'device') and chunk_image.device.type == 'cuda':
+                                chunk_image.record_stream(transfer_stream)
                         else:
-                            # Extension d'urgence (Rare)
                             cpu_chunk = chunk_image.to("cpu", dtype=final_dtype)
                             final_tensor = torch.cat([final_tensor[:current_write_idx], cpu_chunk], dim=0)
                 else:
-                    # Mode Synchrone (Plus lent mais compatible tout OS)
                     final_tensor[current_write_idx : current_write_idx + out_frames] = chunk_image.to("cpu", dtype=final_dtype)
 
                 current_write_idx += out_frames
                 pbar.update(end_i - i)
                 
-                # Nettoyage immédiat du tenseur GPU temporaire
+                # Le del est sûr
                 del chunk_latents
                 del chunk_image
-                # NOTE: Pas de empty_cache() ici pour éviter le Lag. On laisse PyTorch gérer son allocator.
 
-            # Fin de boucle : Synchro finale
             if transfer_stream: transfer_stream.synchronize()
             
         except Exception as e:
             print(f"!! [Wan Guard Error] {e}")
-            # En cas de crash, on retourne ce qu'on a pu décoder pour ne pas tout perdre
             if final_tensor is not None:
                 return (final_tensor[:current_write_idx],)
             raise e
 
-        # Trim final (ajustement taille exacte)
         result = final_tensor[:current_write_idx]
-        
-        # Retour (Pas de .clone(), on renvoie la vue directe)
         return (result,)
-
-# ==============================================================================
-# NODE MAPPINGS
-# ==============================================================================
 
 NODE_CLASS_MAPPINGS = {
     "Wan_TeaCache_Patch": Wan_TeaCache_Patch,
