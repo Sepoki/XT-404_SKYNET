@@ -2,7 +2,7 @@
 ### Cyberdyne Systems Corp. | Series T-800 | Model 101
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-v3.2_Sentinel-red?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/Version-v3.4_Sentinel-red?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/Architecture-Wan_2.2-blue?style=for-the-badge" alt="Architecture">
   <img src="https://img.shields.io/badge/GGUF-Native_Support-green?style=for-the-badge" alt="GGUF Support">
   <img src="https://img.shields.io/badge/License-MIT-orange?style=for-the-badge" alt="License">
@@ -27,14 +27,14 @@
 ## 🌍 NEURAL NET NAVIGATION / NAVIGATION DU RÉSEAU
 
 ### 🇺🇸 [ENGLISH DOCUMENTATION](#-english-documentation)
-1. [Latest Intel (Changelog)](#-latest-intel-v32--v15-sentinel)
+1. [Latest Intel (Changelog)](#-latest-intel-v34--v152-sentinel)
 2. [Phase 1: Infiltration (Loaders)](#%EF%B8%8F-phase-1-infiltration-loaders)
 3. [Phase 2: Neural Net Core (Samplers)](#-phase-2-neural-net-core-samplers-xt-404)
 4. [Phase 3: Hardware Optimization](#-phase-3-hardware-optimization)
 5. [Phase 4: Post-Processing & Tools](#%EF%B8%8F-phase-4-post-processing--tools)
 
 ### 🇫🇷 [DOCUMENTATION FRANÇAISE](#-documentation-française)
-1. [Dernières Infos (Mise à jour)](#-dernières-infos-v32--v15-sentinel)
+1. [Dernières Infos (Mise à jour)](#-dernières-infos-v34--v152-sentinel)
 2. [Phase 1 : Infiltration (Chargement)](#%EF%B8%8F-phase-1--infiltration-chargement)
 3. [Phase 2 : Cœur Neuronal (Samplers)](#-phase-2--cœur-neuronal-samplers-xt-404)
 4. [Phase 3 : Optimisation Matérielle](#-phase-3--optimisation-matérielle)
@@ -44,15 +44,15 @@
 
 # 🇺🇸 ENGLISH DOCUMENTATION
 
-## 📡 Latest Intel (v3.2 / v15 Sentinel)
+## 📡 Latest Intel (v3.4 / v15.2 Sentinel)
 
-XT-404 Skynet is an elite engineering suite for ComfyUI, specifically architected for the Wan 2.2 video generation model. It bypasses standard limitations by introducing a "Sentinel" logic layer.
+XT-404 Skynet is an elite engineering suite for ComfyUI, specifically architected for the Wan 2.2 video generation model.
 
-### 🆕 KSampler Skynet (XT-404) Update:
-*   **Prompt Authority Engine:** The core now actively monitors the "Signal Integrity" of your conditioning. If `CFG ≤ 1.5` (common for realism), it injects a "Vector Amplification" boost to prevent subject drift.
-*   **Adaptive Bongmath v3:** The "Anti-Plastic" texture engine has been upgraded. It now respects dark scenes (preventing crushed blacks) while expanding dynamic range for hyper-realistic film grain.
-*   **Chain Stability:** Fixed deterministic seeding logic for chained sampling (Master -> Chain -> Refiner).
-*   **God Mode (GGUF Fix):** Automatic override of PyTorch Autocast to prevent `ScalarType` crashes when using Quantized models.
+### 🆕 System Status Update (v3.4):
+*   **Protocol Update (Passive Sentinel):** The "Vector Amplification" (Signal Boost) has been **decommissioned**. The Sentinel now operates in **Passive Monitoring Mode** only. It analyzes CFG levels but no longer interferes with the signal, resolving "burn" issues in Chained/Refined workflows.
+*   **Atomic Guard v14.2 (Stability):** Fixed a critical backend crash (`record_stream`) when decoding on CPU/Hybrid modes. Added robust async synchronization to prevent memory corruption.
+*   **Vision Cache v8.1:** Enhanced hashing algorithm (Stride 16 + Byte Exactness) to eliminate collision risks on similar frames.
+*   **Adaptive Bongmath v3:** The "Anti-Plastic" texture engine remains active, respecting dark scenes while expanding dynamic range.
 
 ---
 
@@ -79,13 +79,13 @@ The "Sentinel" engine powers three specialized sampling nodes designed for chain
 
 ### 🔴 XT-404 Skynet 1 (Master)
 **The Commander node.** Initializes generation and defines the global noise schedule.
-*   **Prompt Authority:** Active signal monitoring.
+*   **Prompt Authority:** Active signal monitoring (Passive Mode).
 *   **Outputs:** Latent, Denoised Latent, Options (for chaining), Seed.
 
 | Parameter | Description |
 | :--- | :--- |
 | `sampler_name` | Combo selection (e.g., `linear/euler`, `beta/dpmpp_2m`). |
-| `cfg` | Guidance Scale. Triggers Signal Boost if `≤ 1.5`. |
+| `cfg` | Guidance Scale. Monitored by Sentinel. |
 | `bongmath` | Texture Engine. `True` = Film/Analog look. `False` = Digital/Smooth. |
 | `sampler_mode` | Standard or Resample (injects fresh noise). |
 
@@ -149,15 +149,15 @@ Surgical memory cleaning. Uses Windows API `EmptyWorkingSet` to flush Physical R
 
 # 🇫🇷 DOCUMENTATION FRANÇAISE
 
-## 📡 Dernières Infos (v3.2 / v15 Sentinel)
+## 📡 Dernières Infos (v3.4 / v15.2 Sentinel)
 
-XT-404 Skynet est une suite d'ingénierie d'élite pour ComfyUI, architecturée spécifiquement pour le modèle de génération vidéo Wan 2.2. Elle contourne les limitations standards grâce à une couche logique "Sentinel".
+XT-404 Skynet est une suite d'ingénierie d'élite pour ComfyUI, architecturée spécifiquement pour le modèle de génération vidéo Wan 2.2.
 
-### 🆕 Mise à jour KSampler Skynet (XT-404) :
-*   **Moteur d'Autorité de Prompt :** Le noyau surveille activement "l'Intégrité du Signal" de votre conditionnement. Si le `CFG ≤ 1.5` (réalisme), il injecte une "Amplification Vectorielle" pour empêcher la perte du sujet.
-*   **Bongmath Adaptatif v3 :** Le moteur de texture "Anti-Plastique" a été mis à niveau. Il respecte désormais les scènes sombres (évitant les noirs écrasés) tout en étendant la plage dynamique pour un grain argentique ultra-réaliste.
-*   **Stabilité de Chaîne :** Correction de la logique de seed déterministe pour l'échantillonnage en chaîne (Master -> Chain -> Refiner).
-*   **God Mode (Correctif GGUF) :** Surcharge automatique de l'Autocast PyTorch pour éviter les crashs `ScalarType` lors de l'utilisation de modèles Quantifiés.
+### 🆕 Mise à jour État Système (v3.4) :
+*   **Mise à jour Protocole (Sentinel Passif) :** L'amplification vectorielle (Signal Boost) a été **désactivée**. Le Sentinel opère désormais en **Mode Monitoring Passif**. Il analyse le CFG mais n'intervient plus sur le signal, résolvant les problèmes de sur-saturation dans les chaînes (Chain/Refiner).
+*   **Atomic Guard v14.2 (Stabilité) :** Correction d'un crash critique de backend (`record_stream`) lors du décodage CPU/Hybride. Synchronisation asynchrone renforcée pour éviter la corruption mémoire.
+*   **Cache Vision v8.1 :** Algorithme de hachage renforcé (Stride 16) pour éliminer les risques de collisions sur des frames similaires.
+*   **Bongmath Adaptatif v3 :** Le moteur de texture reste actif, respectant les scènes sombres tout en optimisant le grain argentique.
 
 ---
 
@@ -184,13 +184,13 @@ Le moteur "Sentinel" propulse trois nœuds d'échantillonnage spécialisés con�
 
 ### 🔴 XT-404 Skynet 1 (Master)
 **Le Commandant.** Initialise la génération et définit le planning de bruit global.
-*   **Autorité de Prompt :** Surveillance active du signal.
+*   **Autorité de Prompt :** Surveillance active du signal (Mode Passif).
 *   **Sorties :** Latent, Latent Débruité, Options (pour le chaînage), Seed.
 
 | Paramètre | Description |
 | :--- | :--- |
 | `sampler_name` | Sélection combinée (ex: `linear/euler`, `beta/dpmpp_2m`). |
-| `cfg` | Échelle de guidage. Déclenche le Signal Boost si `≤ 1.5`. |
+| `cfg` | Échelle de guidage. Surveillé par Sentinel. |
 | `bongmath` | Moteur de Texture. `True` = Look Film/Analogique. `False` = Numérique/Lisse. |
 | `sampler_mode` | Standard ou Resample (injecte du bruit frais). |
 
