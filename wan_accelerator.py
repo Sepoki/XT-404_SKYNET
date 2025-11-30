@@ -4,18 +4,17 @@ import torch.nn.functional as F
 
 class Wan_Hardware_Accelerator:
     """
-    V6.1: TF32 Global Activation (With State Warning).
-    Note: Activating TF32 changes the global PyTorch state for Matrix Multiplications.
-    This benefits Ampere+ GPUs significantly but affects all nodes in the process.
+    OMEGA EDITION: TF32 Global Activation Control.
+    ATTENTION : Activer TF32 change l'état global de PyTorch.
+    Gain de vitesse : ~30% sur Ampere+. Perte de précision : Minime (Mantisse 10-bit).
     """
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
                 "model": ("MODEL",),
-                "enable_tf32": ("BOOLEAN", {"default": True}),
-                "cudnn_benchmark": ("BOOLEAN", {"default": True}),
-                "high_precision_norm": ("BOOLEAN", {"default": False}),
+                "enable_tf32": ("BOOLEAN", {"default": True, "tooltip": "Active TensorFloat-32. Rapide mais réduit légèrement la précision."}),
+                "cudnn_benchmark": ("BOOLEAN", {"default": True, "tooltip": "Optimise les algos de convolution pour les tailles fixes."}),
             }
         }
     RETURN_TYPES = ("MODEL",)
@@ -23,17 +22,25 @@ class Wan_Hardware_Accelerator:
     FUNCTION = "apply_acceleration"
     CATEGORY = "ComfyWan_Architect/Performance"
 
-    def apply_acceleration(self, model, enable_tf32, cudnn_benchmark, high_precision_norm):
-        if enable_tf32 and torch.cuda.is_available():
-            # Vérification de l'état précédent pour log
-            prev_status = torch.backends.cuda.matmul.allow_tf32
+    def apply_acceleration(self, model, enable_tf32, cudnn_benchmark):
+        # 1. Gestion TF32 (Global State)
+        if torch.cuda.is_available():
+            current_matmul = torch.backends.cuda.matmul.allow_tf32
+            current_cudnn = torch.backends.cudnn.allow_tf32
             
-            torch.backends.cuda.matmul.allow_tf32 = True
-            torch.backends.cudnn.allow_tf32 = True
-            
-            if not prev_status:
-                print(f">> [Wan Accel] \033[93mGLOBAL STATE CHANGE:\033[0m TF32 Enabled for PyTorch Matrix Multiplications.")
+            if enable_tf32:
+                if not current_matmul or not current_cudnn:
+                    print(f"⚡ [Wan Accel] OMEGA ACTIVATED: TF32 Enabled (Speed Up). Precision reduced slightly.")
+                torch.backends.cuda.matmul.allow_tf32 = True
+                torch.backends.cudnn.allow_tf32 = True
+            else:
+                # On ne désactive que si l'utilisateur le demande explicitement
+                if current_matmul:
+                    print(f"🛡️ [Wan Accel] OMEGA SAFETY: TF32 Disabled. Maximum Precision enforced.")
+                torch.backends.cuda.matmul.allow_tf32 = False
+                torch.backends.cudnn.allow_tf32 = False
         
+        # 2. Benchmark CuDNN
         if cudnn_benchmark and torch.cuda.is_available():
             torch.backends.cudnn.benchmark = True
 
@@ -42,16 +49,15 @@ class Wan_Hardware_Accelerator:
 
 class Wan_Attention_Slicer:
     """
-    V6 HPC: SDPA Auto-Detect.
-    Utilise Flash Attention (SDPA) par défaut si disponible.
-    Ne slice que si explicitement demandé.
+    OMEGA EDITION: Smart Attention Management.
+    Priorité : SDPA (Flash Attention) > Slicing manuel.
     """
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
                 "model": ("MODEL",),
-                "slice_size": ("INT", {"default": 0, "min": 0, "max": 32, "tooltip": "0 = Auto (SDPA Fast). 1-4 = Force Low VRAM Mode."}),
+                "slice_size": ("INT", {"default": 0, "min": 0, "max": 32, "tooltip": "0 = Auto (Flash Attention). 1-8 = Force Slicing (Low VRAM)."}),
             }
         }
         
@@ -62,33 +68,38 @@ class Wan_Attention_Slicer:
     def patch_attention(self, model, slice_size):
         m = model.clone()
         
-        # P3 Optimisation: SDPA Detection
+        # Détection SDPA (Scaled Dot Product Attention)
         has_sdpa = hasattr(F, "scaled_dot_product_attention")
         
-        # Si slice_size est 0 (Auto)
+        current_options = m.model_options.get("transformer_options", {}).copy()
+
         if slice_size == 0:
+            # MODE AUTO
             if has_sdpa:
-                print(f">> [Wan Accel] Using PyTorch 2.0 SDPA (Flash Attention). Fast Mode.")
-                # On ne fait rien, ComfyUI utilise SDPA par défaut si on ne touche pas
-                # On s'assure juste que memory_efficient_attention est activé dans les options Comfy
-                current_options = m.model_options.get("transformer_options", {}).copy()
-                # On retire les contraintes de slicing
+                print(f"🚀 [Wan Accel] Using Native PyTorch SDPA (Flash Attention).")
+                # Nettoyage des contraintes de slicing pour laisser faire SDPA
                 if "attention_slice_size" in current_options:
                     del current_options["attention_slice_size"]
                 m.model_options["transformer_options"] = current_options
             else:
-                # Pas de SDPA ? On met une valeur par défaut sûre
-                print(f">> [Wan Accel] Legacy PyTorch detected. Applying default slicing (8).")
-                current_options = m.model_options.get("transformer_options", {}).copy()
+                # Fallback pour vieux PyTorch
+                print(f"⚠️ [Wan Accel] SDPA not found. Fallback to Slicing (8).")
                 current_options["attention_slice_size"] = 8
                 m.model_options["transformer_options"] = current_options
-        
-        # Si slice_size > 0 (Mode Forcé Low VRAM)
         else:
-            print(f">> [Wan Accel] Forcing Attention Slice: {slice_size} (Low VRAM).")
-            current_options = m.model_options.get("transformer_options", {}).copy()
+            # MODE FORCÉ (Low VRAM)
+            print(f"📉 [Wan Accel] Forcing Attention Slice: {slice_size}. (VRAM Saved / Speed Reduced)")
             current_options["memory_efficient_attention"] = True
             current_options["attention_slice_size"] = slice_size
             m.model_options["transformer_options"] = current_options
             
         return (m,)
+
+NODE_CLASS_MAPPINGS = {
+    "Wan_Hardware_Accelerator": Wan_Hardware_Accelerator,
+    "Wan_Attention_Slicer": Wan_Attention_Slicer
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Wan_Hardware_Accelerator": "Wan Hardware Accelerator (Omega)",
+    "Wan_Attention_Slicer": "Wan Attention Strategy (Omega)"
+}
