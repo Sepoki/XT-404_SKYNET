@@ -77,12 +77,10 @@ def t800_log(name, status, extra=""):
 # ==============================================================================
 
 render_top()
-# Correction : SERIES T-800
-render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.2{C_RESET}", "center")
+render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.3{C_RESET}", "center")
 render_sep()
 
-# ASCII ART "XT404 SKYNET" (Style Terrace Block - Side by Side)
-# Création pixel art manuel pour alignement parfait
+# ASCII ART "XT404 SKYNET"
 ascii_art = [
     r"█ █ ▀█▀ █ █ █▀█ █ █   █▀▀ █ █ █ █ █▄ █ █▀▀ ▀█▀",
     r"▄▀▄  █  ▀▀█ █ █ ▀▀█   ▀▀█ █▀▄  █  █ ▀█ █▀▀  █ ",
@@ -115,7 +113,6 @@ try:
     NODE_DISPLAY_NAME_MAPPINGS["CyberdyneModelHub"] = "Cyberdyne Model Hub"
     t800_log("INFILTRATION UNIT (GGUF)", "DETECTED")
     
-    # Correction : Texte rouge
     msg = f"   └─ {C_RED}Requires Engine: city96/ComfyUI-GGUF{C_RESET}"
     render_line(msg)
     SYSTEM_CHECKLIST["Cyberdyne Hub"] = True
@@ -178,7 +175,32 @@ except ImportError:
     SYSTEM_CHECKLIST["Wan Accelerator"] = False
     SYSTEM_CHECKLIST["Wan Terminator"] = False
 
-# --- PHASE 6: COMPRESSOR (CORRECTION DU BUG DE BORDURE) ---
+# --- PHASE 6: MIMETIC RENDERING (GEN) ---
+try:
+    # C'est ici que tes deux nouveaux fichiers sont chargés
+    from .wan_fast import WanImageToVideoFidelity
+    from .nodes_wan_ultra import WanImageToVideoUltra
+
+    # Enregistrement des Nodes
+    NODE_CLASS_MAPPINGS["WanImageToVideoFidelity"] = WanImageToVideoFidelity
+    NODE_DISPLAY_NAME_MAPPINGS["WanImageToVideoFidelity"] = "Wan Image To Video (Optimized FP32 High Fidelity)"
+
+    NODE_CLASS_MAPPINGS["WanImageToVideoUltra"] = WanImageToVideoUltra
+    NODE_DISPLAY_NAME_MAPPINGS["WanImageToVideoUltra"] = "Wan Image To Video (Ultra HD - Fidelity - Dynamics)"
+
+    t800_log("MIMETIC RENDERING (GEN)", "ONLINE", f"{C_CYAN}FP32 Core: ACTIVE")
+    
+    # Validation pour la Checklist finale (Le [V] ou [X])
+    SYSTEM_CHECKLIST["Wan Fidelity Gen"] = True
+    SYSTEM_CHECKLIST["Wan Ultra Gen"] = True
+
+except ImportError:
+    # Si un fichier manque, ça passe en erreur ici
+    t800_log("MIMETIC RENDERING", "CRITICAL ERROR")
+    SYSTEM_CHECKLIST["Wan Fidelity Gen"] = False
+    SYSTEM_CHECKLIST["Wan Ultra Gen"] = False
+
+# --- PHASE 7: COMPRESSOR ---
 try:
     # CAPTURE DU PRINT SAUVAGE
     f = io.StringIO()
@@ -215,6 +237,7 @@ for name, status in SYSTEM_CHECKLIST.items():
         check = f"{C_RED}[X]{C_RESET}"
         n_col = C_RED
     
+    # Affichage aligné dans le cadre
     line = f" Check : {check} {n_col}{name}{C_RESET}"
     render_line(line)
 
