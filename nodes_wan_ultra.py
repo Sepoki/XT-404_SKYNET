@@ -6,11 +6,11 @@ import comfy.utils
 
 class WanImageToVideoUltra:
     """
-    WanImageToVideoUltra - Version DEFINITIVE (Fidelity + Dynamics + Duration Control).
+    WanImageToVideoUltra - Version DEFINITIVE (Fidelity + Dynamics + Frame Control).
     
     Fusionne le meilleur de l'ingénierie haute performance et les astuces de la communauté :
     1. Base Ultra : FP32, Bicubic AA, Detail Boost, Memory Safe.
-    2. Duration Preset : Sélection simplifiée par durée (5s, 10s, 15s...) avec mapping de frames précis.
+    2. Frame Control : Définition manuelle et précise du nombre de frames générées.
     3. Reference Injection : Force le modèle à respecter l'identité de l'image.
     4. Motion Amplification : Force le mouvement si le modèle est trop statique.
     """
@@ -23,19 +23,9 @@ class WanImageToVideoUltra:
                 "negative": ("CONDITIONING", ),
                 "vae": ("VAE", ),
                 
-                # --- MODIFICATION DURATION ---
-                # Remplacement du Slider INT par un Dropdown précis
-                "video_duration": (
-                    [
-                        "5s (114 frames)", 
-                        "10s (229 frames)", 
-                        "15s (342 frames)", 
-                        "20s (456 frames)", 
-                        "25s (570 frames)", 
-                        "30s (684 frames)"
-                    ], 
-                    {"default": "5s (114 frames)"}
-                ),
+                # --- MODIFICATION: FRAME CONTROL ---
+                # Remplacement du Dropdown par un INT pour contrôle manuel
+                "video_frames": ("INT", {"default": 114, "min": 1, "max": 4096, "step": 1, "tooltip": "Nombre exact de frames (ex: 114 pour 5s @ 24fps, 229 pour 10s)."}),
                 
                 "width": ("INT", {"default": 832, "min": 16, "max": nodes.MAX_RESOLUTION, "step": 16}),
                 "height": ("INT", {"default": 480, "min": 16, "max": nodes.MAX_RESOLUTION, "step": 16}),
@@ -66,20 +56,12 @@ class WanImageToVideoUltra:
         enhanced = torch.nn.functional.conv2d(image_tensor.reshape(b*c, 1, h, w), kernel, padding=1).view(b, c, h, w)
         return torch.lerp(image_tensor, enhanced, factor * 0.3).clamp(0.0, 1.0)
 
-    def execute(self, positive, negative, vae, video_duration, width, height, batch_size, detail_boost, motion_amp, force_ref, start_image=None, clip_vision_output=None):
+    def execute(self, positive, negative, vae, video_frames, width, height, batch_size, detail_boost, motion_amp, force_ref, start_image=None, clip_vision_output=None):
         device = comfy.model_management.intermediate_device()
         comfy.model_management.soft_empty_cache()
         
-        # --- MAPPING AUTOMATIQUE DURATION -> FRAMES ---
-        duration_map = {
-            "5s (114 frames)": 114,
-            "10s (229 frames)": 229,
-            "15s (342 frames)": 342,
-            "20s (456 frames)": 456,
-            "25s (570 frames)": 570,
-            "30s (684 frames)": 684
-        }
-        length = duration_map.get(video_duration, 114) # Sécurité par défaut
+        # --- UTILISATION DIRECTE DU NOMBRE DE FRAMES ---
+        length = video_frames
         
         latent_t = ((length - 1) // 4) + 1
         latent = torch.zeros([batch_size, 16, latent_t, height // 8, width // 8], device=device, dtype=torch.float32)
