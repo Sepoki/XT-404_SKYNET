@@ -1,3 +1,4 @@
+
 """
 XT-404 SKYNET SUITE : GLOBAL INITIALIZATION
 Architecture: Cyberdyne Systems Model T-800 / Wan 2.2 Integration
@@ -77,7 +78,7 @@ def t800_log(name, status, extra=""):
 # ==============================================================================
 
 render_top()
-render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.3{C_RESET}", "center")
+render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.4{C_RESET}", "center")
 render_sep()
 
 # ASCII ART "XT404 SKYNET"
@@ -155,6 +156,25 @@ except ImportError:
     SYSTEM_CHECKLIST["Wan Resolution"] = False
     SYSTEM_CHECKLIST["Wan Text Cache"] = False
 
+# --- PHASE 4.5: AUTOMATION (PRE-PROCESS) ---
+try:
+    from .auto_wan_node import AutoWanImageOptimizer
+    from .auto_half_node import AutoHalfSizeImage
+    
+    NODE_CLASS_MAPPINGS["AutoWanImageOptimizer"] = AutoWanImageOptimizer
+    NODE_DISPLAY_NAME_MAPPINGS["AutoWanImageOptimizer"] = "Auto Wan 2.2 Optimizer (Safe Resize)"
+    
+    NODE_CLASS_MAPPINGS["AutoHalfSizeImage"] = AutoHalfSizeImage
+    NODE_DISPLAY_NAME_MAPPINGS["AutoHalfSizeImage"] = "Auto Image Half Size (1/2)"
+    
+    t800_log("AUTOMATION SUBROUTINES", "ONLINE", f"{C_BLUE}Smart-Scale: READY")
+    SYSTEM_CHECKLIST["Wan Auto Optimizer"] = True
+    SYSTEM_CHECKLIST["Auto Half Resizer"] = True
+except ImportError:
+    t800_log("AUTOMATION SUBROUTINES", "FAILURE")
+    SYSTEM_CHECKLIST["Wan Auto Optimizer"] = False
+    SYSTEM_CHECKLIST["Auto Half Resizer"] = False
+
 # --- PHASE 5: WEAPONS ---
 try:
     from .wan_accelerator import Wan_Hardware_Accelerator, Wan_Attention_Slicer
@@ -177,11 +197,9 @@ except ImportError:
 
 # --- PHASE 6: MIMETIC RENDERING (GEN) ---
 try:
-    # C'est ici que tes deux nouveaux fichiers sont chargés
     from .wan_fast import WanImageToVideoFidelity
     from .nodes_wan_ultra import WanImageToVideoUltra
 
-    # Enregistrement des Nodes
     NODE_CLASS_MAPPINGS["WanImageToVideoFidelity"] = WanImageToVideoFidelity
     NODE_DISPLAY_NAME_MAPPINGS["WanImageToVideoFidelity"] = "Wan Image To Video (Optimized FP32 High Fidelity)"
 
@@ -189,13 +207,10 @@ try:
     NODE_DISPLAY_NAME_MAPPINGS["WanImageToVideoUltra"] = "Wan Image To Video (Ultra HD - Fidelity - Dynamics)"
 
     t800_log("MIMETIC RENDERING (GEN)", "ONLINE", f"{C_CYAN}FP32 Core: ACTIVE")
-    
-    # Validation pour la Checklist finale (Le [V] ou [X])
     SYSTEM_CHECKLIST["Wan Fidelity Gen"] = True
     SYSTEM_CHECKLIST["Wan Ultra Gen"] = True
 
 except ImportError:
-    # Si un fichier manque, ça passe en erreur ici
     t800_log("MIMETIC RENDERING", "CRITICAL ERROR")
     SYSTEM_CHECKLIST["Wan Fidelity Gen"] = False
     SYSTEM_CHECKLIST["Wan Ultra Gen"] = False
