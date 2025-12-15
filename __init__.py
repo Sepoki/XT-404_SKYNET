@@ -1,4 +1,3 @@
-
 """
 XT-404 SKYNET SUITE : GLOBAL INITIALIZATION
 Architecture: Cyberdyne Systems Model T-800 / Wan 2.2 Integration
@@ -78,7 +77,7 @@ def t800_log(name, status, extra=""):
 # ==============================================================================
 
 render_top()
-render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.4{C_RESET}", "center")
+render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.5{C_RESET}", "center")
 render_sep()
 
 # ASCII ART "XT404 SKYNET"
@@ -121,18 +120,17 @@ except ImportError:
     t800_log("INFILTRATION UNIT", "MISSING DEP")
     SYSTEM_CHECKLIST["Cyberdyne Hub"] = False
 
-# --- PHASE 3: OPTIMIZER ---
+# --- PHASE 3: T-3000 CORE (GENISYS) ---
 try:
-    from .wan_optimizer import NODE_CLASS_MAPPINGS as OPT, NODE_DISPLAY_NAME_MAPPINGS as OPT_N
-    NODE_CLASS_MAPPINGS.update(OPT)
-    NODE_DISPLAY_NAME_MAPPINGS.update(OPT_N)
-    t800_log("HYDRAULICS (TEA-CACHE)", "OPTIMIZED", f"{C_GREEN}VRAM Guard: ON")
-    SYSTEM_CHECKLIST["Wan TeaCache"] = True
-    SYSTEM_CHECKLIST["Wan Hybrid Guard"] = True
+    # REMPLACEMENT: wan_optimizer -> wan_genisys
+    from .wan_genisys import NODE_CLASS_MAPPINGS as GEN, NODE_DISPLAY_NAME_MAPPINGS as GEN_N
+    NODE_CLASS_MAPPINGS.update(GEN)
+    NODE_DISPLAY_NAME_MAPPINGS.update(GEN_N)
+    t800_log("T-3000 PHASE CONTROLLER", "ONLINE", f"{C_RED}Omniscient HUD: ACTIVE")
+    SYSTEM_CHECKLIST["Cyberdyne Genisys (T-3000)"] = True
 except ImportError:
-    t800_log("HYDRAULICS", "OFFLINE")
-    SYSTEM_CHECKLIST["Wan TeaCache"] = False
-    SYSTEM_CHECKLIST["Wan Hybrid Guard"] = False
+    t800_log("T-3000 PHASE CONTROLLER", "OFFLINE")
+    SYSTEM_CHECKLIST["Cyberdyne Genisys (T-3000)"] = False
 
 # --- PHASE 4: SENSORS ---
 try:
@@ -168,11 +166,11 @@ try:
     NODE_DISPLAY_NAME_MAPPINGS["AutoHalfSizeImage"] = "Auto Image Half Size (1/2)"
     
     t800_log("AUTOMATION SUBROUTINES", "ONLINE", f"{C_BLUE}Smart-Scale: READY")
-    SYSTEM_CHECKLIST["Wan Auto Optimizer"] = True
+    SYSTEM_CHECKLIST["Wan Auto Helper"] = True
     SYSTEM_CHECKLIST["Auto Half Resizer"] = True
 except ImportError:
     t800_log("AUTOMATION SUBROUTINES", "FAILURE")
-    SYSTEM_CHECKLIST["Wan Auto Optimizer"] = False
+    SYSTEM_CHECKLIST["Wan Auto Helper"] = False
     SYSTEM_CHECKLIST["Auto Half Resizer"] = False
 
 # --- PHASE 5: WEAPONS ---
