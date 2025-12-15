@@ -72,9 +72,9 @@ Standard nodes rely on generic implementations. **XT-404 Skynet** is a custom-en
 | :--- | :--- | :--- |
 | `reference_image` | **REQUIRED** | The source image (style reference). The mood is extracted from here. |
 | `effect_intensity` | **1.00** | Blending strength of the LAB transfer. |
-| `oled_contrast` | **0.20** | **The "Netflix" Look.** Boosts dynamic range. 0.0 = Neutral. |
-| `skin_metal_smooth` | **0.40** | **Smart Surface Blur.** Smoothes skin/metal but detects edges to keep sharpness. |
-| `detail_crispness` | **0.50** | **Cinema Piqué.** Enhances micro-details using a difference-of-gaussians approach. |
+| `oled_contrast` | **0.02** | **The "Netflix" Look.** Boosts dynamic range. 0.0 = Neutral. |
+| `skin_metal_smooth` | **1.00** | **Smart Surface Blur.** Smoothes skin/metal but detects edges to keep sharpness. |
+| `detail_crispness` | **0.30** | **Cinema Piqué.** Enhances micro-details using a difference-of-gaussians approach. |
 
 ---
 
@@ -179,9 +179,9 @@ The "Sentinel" engine. Unlike standard samplers, these are hard-coded with the *
 | :--- | :--- | :--- |
 | `reference_image` | **REQUIS** | L'image source (style). L'ambiance (Mean/Std LAB) est extraite d'ici. |
 | `effect_intensity` | **1.00** | Force du mélange (Lerp) du transfert LAB. |
-| `oled_contrast` | **0.20** | **Le Look "Netflix".** Boost la plage dynamique. 0.0 = Neutre. |
-| `skin_metal_smooth` | **0.40** | **Smart Blur.** Lisse les aplats (peau/métal) via détection de variance locale, mais protège les bords. |
-| `detail_crispness` | **0.50** | **Piqué Cinéma.** Réhausse les hautes fréquences via une différence de gaussiennes. |
+| `oled_contrast` | **0.02** | **Le Look "Netflix".** Boost la plage dynamique. 0.0 = Neutre. |
+| `skin_metal_smooth` | **1.00** | **Smart Blur.** Lisse les aplats (peau/métal) via détection de variance locale, mais protège les bords. |
+| `detail_crispness` | **0.30** | **Piqué Cinéma.** Réhausse les hautes fréquences via une différence de gaussiennes. |
 
 ---
 
