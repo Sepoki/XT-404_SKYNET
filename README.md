@@ -2,9 +2,9 @@
 ### Cyberdyne Systems Corp. | Series T-800 | Model 101
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-v4.0_Omega_MagCache-red?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/Version-v29.0_GOLD_MASTER-yellow?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/Architecture-Wan_2.2-blue?style=for-the-badge" alt="Architecture">
-  <img src="https://img.shields.io/badge/Engine-T_1000_Sentinel-purple?style=for-the-badge" alt="Engine">
+  <img src="https://img.shields.io/badge/Engine-T_3000_Genisys-red?style=for-the-badge" alt="Engine">
   <img src="https://img.shields.io/badge/License-MIT-orange?style=for-the-badge" alt="License">
 </p>
 
@@ -16,7 +16,7 @@
 
 > [!CAUTION]
 > **INFILTRATION PROTOCOL (GGUF):**
-> To utilize GGUF Quantized Models with this suite, the **ComfyUI-GGUF** engine is **REQUIRED**.
+> To utilize GGUF Quantized Models with the **Cyberdyne Model Hub**, the **ComfyUI-GGUF** engine is **REQUIRED**.
 >
 > 📥 **Download Engine:** `city96/ComfyUI-GGUF`
 >
@@ -27,52 +27,31 @@
 ## 🌍 NEURAL NET NAVIGATION / NAVIGATION DU RÉSEAU
 
 ### 🇺🇸 [ENGLISH DOCUMENTATION](#-english-documentation)
-1. [Latest Intel (MagCache & T-1000)](#-latest-intel-omega-v40-magcache--t-1000)
-2. [Phase 1: Infiltration (Loaders)](#%EF%B8%8F-phase-1-infiltration-loaders)
-3. [Phase 2: Neural Net Core (Samplers)](#-phase-2-neural-net-core-samplers-xt-404)
-4. [Phase 3: Hardware Optimization (MagCache Omega)](#-phase-3-hardware-optimization-omega-engine)
-5. [Phase 4: Post-Processing & Tools](#%EF%B8%8F-phase-4-post-processing--tools)
-6. [Phase 6: Mimetic Generation (Fidelity & Ultra)](#-phase-6-mimetic-generation-fidelity--ultra)
+1. [Phase 1: Infiltration (Model Loader)](#-phase-1-infiltration-cyberdyne-model-hub)
+2. [Phase 2: Neural Net Core (XT-404 Samplers)](#-phase-2-neural-net-core-xt-404-samplers)
+3. [Phase 3: T-3000 Genisys (Omniscient Cache)](#-phase-3-t-3000-genisys-omniscient-cache)
+4. [Phase 4: Mimetic Rendering (I2V Ultra & Fidelity)](#-phase-4-mimetic-rendering-i2v-ultra--fidelity)
+5. [Phase 5: Sensors & Accelerators (Omega Tools)](#-phase-5-sensors--accelerators-omega-tools)
+6. [Phase 6: Post-Processing & Automation](#-phase-6-post-processing--automation)
 
 ### 🇫🇷 [DOCUMENTATION FRANÇAISE](#-documentation-française)
-1. [Dernières Infos (MagCache & T-1000)](#-dernières-infos-omega-v40-magcache--t-1000)
-2. [Phase 1 : Infiltration (Chargement)](#%EF%B8%8F-phase-1--infiltration-chargement)
-3. [Phase 2 : Cœur Neuronal (Samplers)](#-phase-2--cœur-neuronal-samplers-xt-404)
-4. [Phase 3 : Optimisation Matérielle (MagCache Omega)](#-phase-3--optimisation-matérielle-moteur-omega)
-5. [Phase 4 : Post-Production & Outils](#%EF%B8%8F-phase-4--post-production--outils)
-6. [Phase 6 : Génération Mimétique (Fidelity & Ultra)](#-phase-6--génération-mimétique-fidelity--ultra)
+1. [Phase 1 : Infiltration (Chargement Modèles)](#-phase-1--infiltration-cyberdyne-model-hub)
+2. [Phase 2 : Cœur Neuronal (Samplers XT-404)](#-phase-2--cœur-neuronal-samplers-xt-404)
+3. [Phase 3 : T-3000 Genisys (Cache Omniscient)](#-phase-3--t-3000-genisys-cache-omniscient)
+4. [Phase 4 : Rendu Mimétique (I2V Ultra & Fidelity)](#-phase-4--rendu-mimétique-i2v-ultra--fidelity)
+5. [Phase 5 : Capteurs & Accélérateurs (Outils Omega)](#-phase-5--capteurs--accélérateurs-outils-omega)
+6. [Phase 6 : Post-Production & Automatisation](#-phase-6--post-production--automatisation)
 
 ---
 
 # 🇺🇸 ENGLISH DOCUMENTATION
 
-## 📡 Latest Intel (Omega v4.0: MagCache & T-1000)
-
-XT-404 Skynet is an elite engineering suite for ComfyUI, specifically architected for the Wan 2.2 video generation model. The **v4.0 Omega** update replaces the legacy TeaCache with the revolutionary **MagCache** and introduces the **T-1000 Sentinel** telemetry system.
-
-### 🆕 System Status Update (v4.0 Omega):
-
-*   **Mimetic Rendering Core (I2V Ultra):**
-    *   **"Paroxysm" Detail Engine:** A new GPU-accelerated sharpening matrix applied *before* VAE encoding to counteract natural blur.
-    *   **FP32 Fidelity Lock:** The entire image pipeline is now locked to 32-bit floating point precision to eliminate color banding.
-    *   **Reference Injection:** Forces the model to maintain subject identity by injecting the source image as a hard reference.
-    *   **Smart Duration:** New dropdown menu handling exact frame-to-second compression ratios (e.g., 5s = 114 frames).
-*   **MagCache "Omega Edition" (Replaces TeaCache):**
-    *   **Accumulated Error Logic:** Unlike TeaCache (instant delta), MagCache accumulates signal drift over time. It only triggers a recalculation when the total drift exceeds the threshold.
-    *   **Quantum Safe (FP8/BF16):** Includes a specific fix for "QuantizedTensor" crashes. It casts tensors to FP32 *only* for metric calculation.
-    *   **Dual-Flow Engine:** Completely isolates Positive and Negative prompt caching via memory pointer analysis (`data_ptr`).
-*   **T-1000 Sentinel (Active Telemetry):**
-    *   **Real-Time Console HUD:** Displays Step, Flow ID, Signal Drift, and Fidelity % in the ComfyUI console.
-    *   **Turbo Hard Lock:** Automatically detects aggressive samplers (Turbo/Lightning 6-steps) and **forces** calculation for the first few steps.
-
----
-
-## 🛡️ Phase 1: Infiltration (Loaders)
+## 🛡️ Phase 1: Infiltration (Cyberdyne Model Hub)
 
 ### 🤖 Cyberdyne Model Hub
-**Class:** `CyberdyneModelHub`
+**File:** `cyberdyne_model_hub.py`
 
-A unified, intelligent loader that bridges the gap between Analog (Safetensors) and Quantized (GGUF) architectures. It specifically handles the Wan 2.2 Dual-Model requirement (High Context + Low Context).
+A unified, intelligent loader that bridges the gap between Analog (Safetensors) and Quantized (GGUF) architectures. It specifically handles the Wan 2.2 Dual-Model requirement (High Context + Low Context) and includes a recursive file scanner.
 
 | Parameter | Description |
 | :--- | :--- |
@@ -84,203 +63,209 @@ A unified, intelligent loader that bridges the gap between Analog (Safetensors) 
 
 ---
 
-## 🧠 Phase 2: Neural Net Core (Samplers XT-404)
+## 🧠 Phase 2: Neural Net Core (XT-404 Samplers)
 
-The "Sentinel" engine powers three specialized sampling nodes designed for chained workflows.
+**File:** `XT404_Skynet_Nodes.py`
+
+The "Sentinel" engine powers three specialized sampling nodes designed for chained workflows (Master -> Chain -> Refiner). They utilize a specialized noise scheduler (`simple`/`Linear`) mandatory for Wan 2.2.
 
 ### 🔴 XT-404 Skynet 1 (Master)
 **The Commander node.** Initializes generation and defines the global noise schedule.
-*   **Outputs:** Latent, Denoised Latent, Options (for chaining), Seed.
-
-| Parameter | Description |
-| :--- | :--- |
-| `shift_val` | **Critical for Wan 2.2**. Default **5.0**. Controls the noise schedule curve. |
-| `bongmath` | Texture Engine. `True` = Film/Analog look. `False` = Digital/Smooth. |
-| `sampler_mode` | Standard or Resample (injects fresh noise). |
+*   **shift_val:** **5.0** (Default). Critical for Wan 2.2. Controls the noise schedule curve.
+*   **bongmath:** Texture Engine. `True` = Film/Analog look. `False` = Digital/Smooth.
+*   **sampler_mode:** `standard` (Default).
 
 ### 🟡 XT-404 Skynet 2 (Chain)
 **The Relay node.** Designed for split-sampling.
-*   **Logic:** Hides the Seed widget (uses internal deterministic inheritance).
+*   **Logic:** Hides the Seed widget (uses internal deterministic inheritance from Master).
+*   **steps_to_run:** Defines how many steps this specific node executes before passing to the next.
 
 ### 🟢 XT-404 Skynet 3 (Refiner)
 **The Terminator node.** Finalizes the image structure.
+*   **sampler_mode:** `resample` (Default). Injects fresh noise to refine details.
 
 ---
 
-## ⚡ Phase 3: Hardware Optimization (Omega Engine)
+## 💀 Phase 3: T-3000 Genisys (Omniscient Cache)
 
-### 🔮 Wan MagCache (T-1000 Sentinel)
-**Class:** `Wan_MagCache_Patch`
-**The Evolution of Caching.** Replaces TeaCache. Analyzes signal magnitude to skip redundant steps.
+**File:** `wan_genisys.py`
+
+**The "Omniscient" Edition.** A highly advanced caching system that replaces standard TeaCache. It visualizes "Signal Health" in the console and uses Kinetic Momentum to prevent static video freezing.
 
 | Parameter | Description |
 | :--- | :--- |
-| `enable_mag_cache` | Toggle the system on/off. |
-| `mag_threshold` | **0.020** (Default). The accumulated error limit. Higher = Faster/Lower Quality. Lower = Slower/Higher Quality. |
-| `start_step_percent`| **0.3** (Default). Forces calculation for the first 30% of steps. Critical for structure. |
-| `verbose_t1000` | **TRUE**. Activates the T-1000 HUD in the console to monitor Signal Fidelity %. |
-
-### 🚀 Wan Hardware Accelerator
-**Class:** `Wan_Hardware_Accelerator`
-Enables low-level PyTorch optimizations (**TF32**) for NVIDIA Ampere+ GPUs.
-
-### 🧩 Wan Hybrid VRAM Guard (Native Pass)
-**Class:** `Wan_Hybrid_VRAM_Guard`
-Maintained for workflow compatibility. Uses ComfyUI's native optimized decoder.
+| `system_status` | Master switch for the T-3000 engine. |
+| `security_level` | **7** (Default). Controls the cache threshold. 1=Lax, 10=Strict. Adjusts how much change triggers a recalc. |
+| `warmup_steps` | **6** (Default). Number of initial steps where caching is **forbidden**. Crucial for establishing the prompt's subject. |
+| `kinetic_momentum` | **2** (Default). Forces calculation for X frames after a movement is detected to maintain motion inertia. |
+| `hud_display` | Activates the **Cyberdyne HUD** in the console (Visualizes Drift, Tao, Mag, Signal Integrity). |
 
 ---
 
-## 🛠️ Phase 4: Post-Processing & Tools
+## 🎭 Phase 4: Mimetic Rendering (I2V Ultra & Fidelity)
+
+### 🌟 Wan Image To Video Ultra
+**File:** `nodes_wan_ultra.py`
+The definitive engine for Image-to-Video. Features a "Mouchard" (Snitch) for performance monitoring.
+
+*   **FP32 Forced Pipeline:** All math runs in 32-bit floating point to eliminate color banding.
+*   **detail_boost:** A GPU-sharpening matrix applied *before* encoding to counteract VAE blur.
+*   **motion_amp:** Dynamic booster. **1.0** = Normal. **1.15** = Forced movement dynamics.
+*   **force_ref:** Injects the source image as a hard reference (Identity Lock).
+
+### ⚡ Wan Image To Video Fidelity
+**File:** `wan_fast.py`
+Optimized version for speed while maintaining FP32 precision on the latent canvas. Uses `torch.full` for memory efficiency.
+
+---
+
+## ⚡ Phase 5: Sensors & Accelerators (Omega Tools)
+
+### 🚀 Wan Hardware Accelerator (Omega)
+**File:** `wan_accelerator.py`
+*   **enable_tf32:** Activates TensorFloat-32 on Ampere+ GPUs (~30% speedup).
+*   **Attention Slicer:** Smart management of SDPA (Flash Attention) vs Manual Slicing for Low VRAM.
+
+### 👁️ Wan Vision & Text OneShot Cache
+**File:** `wan_i2v_tools.py` & `wan_text_encoder.py`
+*   **Vision Cache:** Hashes the input image (including stride sampling) to prevent re-encoding the same CLIP Vision data.
+*   **Text Cache:** Uses **Pinned Memory (DMA)** to transfer text embeddings from CPU to GPU instantly.
+
+### 📐 Wan Resolution Savant (FP32)
+**File:** `wan_i2v_tools.py`
+Resizes images ensuring dimensions are strictly divisible by 16 (Required by Wan). Uses **FP32 interpolation** (Lanczos/Bicubic) to prevent aliasing.
+
+---
+
+## 🛠️ Phase 6: Post-Processing & Automation
 
 ### 💾 Wan Video Compressor (H.265)
-**Class:** `Wan_Video_Compressor`
-Encodes output to H.265 10-bit with CPU thread management (prevents system lag).
+**File:** `wan_compressor.py`
+Encodes output to H.265 10-bit.
+*   **Thread Safe:** Auto-limits threads (Max 16) to prevent x265 crashes on high-end CPUs (Threadripper/i9).
+*   **Modes:** Web/Discord (CRF 26), Master (CRF 22), Archival (CRF 18).
 
 ### 🧹 Wan Cycle Terminator
-**Class:** `Wan_Cycle_Terminator`
-Surgical memory cleaning using Windows API `EmptyWorkingSet`. Use only when switching heavy workflows.
+**File:** `wan_cleanup.py`
+Surgical memory cleaning using Windows API `EmptyWorkingSet`. Use only when switching heavy workflows to flush RAM/VRAM without crashing.
 
-### 📐 Resolution Savant (FP32)
-**Class:** `Wan_Resolution_Savant`
-Resizes images ensuring dimensions are strictly divisible by 16. Uses **FP32 interpolation** to prevent color banding.
-
----
-
-## 🎭 Phase 6: Mimetic Generation (Fidelity & Ultra)
-
-**Class:** `WanImageToVideoUltra` | `WanImageToVideoFidelity`
-
-The **"Ultra"** engine is a complete re-engineering of the standard I2V process, focusing on absolute FP32 precision and dynamic control.
-
-### 🌟 Key Features (Ultra Node)
-*   **FP32 Forced Pipeline:** All math runs in 32-bit floating point to eliminate color banding.
-*   **Bicubic AA:** High-end upscaling with anti-aliasing (better than bilinear).
-*   **Detail Boost (Paroxysm):** A GPU-sharpening matrix applied *before* encoding to counteract VAE blur.
-*   **Motion Amplification:** A mathematical dynamic booster that solves "static video" issues.
-*   **Reference Injection:** Forces the model to "remember" the source identity (Identity Lock).
-*   **Smart Duration:** Dropdown menu for exact time (5s, 10s...) and frame calculation.
-
-| Parameter | Description |
-| :--- | :--- |
-| `video_duration` | Dropdown (e.g., "5s (114 frames)"). Auto-calculates correct frame count. |
-| `detail_boost` | Sharpening factor. **0.5** is recommended for natural HD. |
-| `motion_amp` | Dynamic booster. **1.0** = Normal. **1.15** = Forced movement. |
-| `force_ref` | **True** = Injects source image as a hard reference (High Fidelity). |
+### 📉 Auto Image Optimizers
+**File:** `auto_wan_node.py` & `auto_half_node.py`
+*   **Auto Wan Optimizer:** Smartly resizes images to safeguard against OOM (Max 1024px) while respecting Modulo 16.
+*   **Auto Half Size:** Quick 50% downscaler with bicubic antialiasing.
 
 ---
 ---
 
 # 🇫🇷 DOCUMENTATION FRANÇAISE
 
-## 📡 Dernières Infos (Omega v4.0 : MagCache & T-1000)
-
-XT-404 Skynet est une suite d'ingénierie d'élite pour ComfyUI. La mise à jour **v4.0 Omega** remplace l'ancien TeaCache par le révolutionnaire **MagCache** et déploie le système de télémétrie **T-1000 Sentinel**.
-
-### 🆕 Mise à jour État Système (v4.0 Omega) :
-
-*   **Cœur de Rendu Mimétique (I2V Ultra) :**
-    *   **Moteur de Détail "Paroxysme" :** Une nouvelle matrice de netteté GPU appliquée *avant* l'encodage VAE pour contrer le flou naturel.
-    *   **Verrouillage Fidélité FP32 :** Tout le pipeline d'image est verrouillé en précision flottante 32 bits pour éliminer les bandes de couleurs (banding).
-    *   **Injection de Référence :** Force le modèle à maintenir l'identité du sujet en injectant l'image source comme référence dure.
-    *   **Durée Intelligente :** Nouveau menu déroulant gérant les ratios exacts de compression frames/secondes (ex: 5s = 114 frames).
-*   **MagCache "Omega Edition" (Remplace TeaCache) :**
-    *   **Logique d'Erreur Accumulée :** Contrairement au TeaCache (différence instantanée), le MagCache accumule la dérive du signal dans le temps. Il ne recalcule que lorsque la dérive totale dépasse le seuil.
-    *   **Sécurité Quantique (FP8/BF16) :** Intègre un correctif spécifique pour les crashs "QuantizedTensor". Il convertit les tenseurs en FP32 *uniquement* pour le calcul métrique.
-    *   **Moteur Double Flux (Dual-Flow) :** Isole totalement le cache des prompts Positifs et Négatifs via une analyse des pointeurs mémoire (`data_ptr`).
-*   **T-1000 Sentinel (Télémétrie Active) :**
-    *   **HUD Console Temps Réel :** Affiche l'étape, l'ID du flux, la dérive (Drift) et le % de Fidélité dans la console ComfyUI.
-    *   **Verrouillage Turbo (Hard Lock) :** Détecte automatiquement les samplers agressifs (Turbo/Lightning 6-steps) et **force** le calcul des premières étapes.
-
----
-
-## 🛡️ Phase 1 : Infiltration (Chargement)
+## 🛡️ Phase 1 : Infiltration (Cyberdyne Model Hub)
 
 ### 🤖 Cyberdyne Model Hub
-**Classe :** `CyberdyneModelHub`
+**Fichier :** `cyberdyne_model_hub.py`
 
-Un chargeur unifié qui gère l'exigence Wan 2.2 Dual-Model (High + Low Context) et supporte nativement les fichiers GGUF.
+Un chargeur unifié qui gère l'exigence Wan 2.2 Dual-Model (High + Low Context) et supporte nativement les fichiers GGUF via un scan récursif.
 
 | Paramètre | Description |
 | :--- | :--- |
 | `model_high_name` | Modèle principal. Supporte `.safetensors` ET `.gguf`. |
 | `dtype_high` | Forçage précision (`fp16`, `bf16`, `fp8_e4m3fn`, etc.). |
 | `model_low_name` | Modèle secondaire (Requis par Wan 2.2). |
-| `enable_checksum` | Scan d'intégrité SHA256. |
+| `enable_checksum` | Scan d'intégrité SHA256 (Sécurité). |
 | `offload_inactive` | **"Protocole Skynet" :** Purge la VRAM avant chargement. |
 
 ---
 
 ## 🧠 Phase 2 : Cœur Neuronal (Samplers XT-404)
 
+**Fichier :** `XT404_Skynet_Nodes.py`
+
+Le moteur "Sentinel" propulse trois nœuds de sampling conçus pour les workflows chaînés (Master -> Chain -> Refiner). Ils utilisent le scheduler spécifique `simple` (Linear) obligatoire pour Wan 2.2.
+
 ### 🔴 XT-404 Skynet 1 (Master)
-**Le Commandant.** Initialise la génération.
-*   **Shift Val :** **5.0** (Défaut). Crucial pour Wan 2.2. Contrôle la courbe de bruit.
-*   **Bongmath :** Moteur de Texture. `True` = Grain Film. `False` = Lisse.
+**Le Commandant.** Initialise la génération et définit la courbe de bruit.
+*   **shift_val :** **5.0** (Défaut). Crucial pour Wan 2.2.
+*   **bongmath :** Moteur de Texture. `True` = Grain Film/Analogique. `False` = Numérique/Lisse.
+*   **sampler_mode :** `standard` (Défaut).
 
 ### 🟡 XT-404 Skynet 2 (Chain)
-**Le Relais.** Conçu pour l'échantillonnage fractionné. Masque le Seed pour héritage déterministe.
+**Le Relais.** Conçu pour l'échantillonnage fractionné.
+*   **Logique :** Masque le widget Seed (utilise l'héritage déterministe interne du Master).
+*   **steps_to_run :** Définit le nombre d'étapes exécutées par ce nœud avant de passer la main.
 
 ### 🟢 XT-404 Skynet 3 (Refiner)
-**Le Terminator.** Finalise les détails haute fréquence.
+**Le Terminator.** Finalise la structure de l'image.
+*   **sampler_mode :** `resample` (Défaut). Réinjecte du bruit frais pour affiner les détails.
 
 ---
 
-## ⚡ Phase 3 : Optimisation Matérielle (MagCache Omega)
+## 💀 Phase 3 : T-3000 Genisys (Cache Omniscient)
 
-### 🔮 Wan MagCache (T-1000 Sentinel)
-**Classe :** `Wan_MagCache_Patch`
-**L'Évolution du Cache.** Remplace le TeaCache. Analyse la magnitude du signal pour sauter les étapes redondantes.
+**Fichier :** `wan_genisys.py`
+
+**L'Édition "Omnisciente".** Un système de cache ultra-avancé remplaçant le TeaCache. Il visualise la "Santé du Signal" dans la console et utilise le "Kinetic Momentum" pour empêcher le gel des vidéos.
 
 | Paramètre | Description |
 | :--- | :--- |
-| `enable_mag_cache` | Active ou désactive le système. |
-| `mag_threshold` | **0.020** (Défaut). Seuil d'erreur accumulée. Plus haut = Plus rapide. Plus bas = Meilleure qualité. |
-| `start_step_percent`| **0.3** (Défaut). Force le calcul sur les premiers 30% des étapes. Vital pour la structure. |
-| `verbose_t1000` | **TRUE**. Active le HUD T-1000 dans la console pour surveiller le % de Fidélité. |
-
-### 🚀 Wan Hardware Accelerator
-**Classe :** `Wan_Hardware_Accelerator`
-Active **TF32** sur les GPU NVIDIA Ampere+. Gain de vitesse ~20%.
-
-### 🧩 Wan Hybrid VRAM Guard (Native Pass)
-**Classe :** `Wan_Hybrid_VRAM_Guard`
-Maintenu pour la compatibilité des workflows. Utilise le décodeur natif optimisé de ComfyUI.
+| `system_status` | Interrupteur principal du moteur T-3000. |
+| `security_level` | **7** (Défaut). Contrôle le seuil du cache. 1=Laxiste, 10=Strict. Ajuste la sensibilité au changement. |
+| `warmup_steps` | **6** (Défaut). Nombre d'étapes initiales où le cache est **interdit**. Vital pour imprimer le sujet du prompt. |
+| `kinetic_momentum` | **2** (Défaut). Force le calcul pour X frames après une détection de mouvement (Inertie). |
+| `hud_display` | Active le **HUD Cyberdyne** dans la console (Visualise Drift, Tao, Mag, Intégrité Signal). |
 
 ---
 
-## 🛠️ Phase 4 : Post-Production & Outils
+## 🎭 Phase 4 : Rendu Mimétique (I2V Ultra & Fidelity)
 
-### 💾 Wan Video Compressor
-Encode la sortie en H.265 10-bits avec gestion intelligente des cœurs CPU.
+### 🌟 Wan Image To Video Ultra
+**Fichier :** `nodes_wan_ultra.py`
+Le moteur définitif pour l'Image-to-Video. Intègre un "Mouchard" pour le monitoring de performance.
+
+*   **Pipeline FP32 Forcé :** Tous les calculs sont en 32 bits pour éliminer les bandes de couleurs (banding).
+*   **detail_boost :** Matrice de netteté GPU appliquée *avant* l'encodage pour contrer le flou du VAE.
+*   **motion_amp :** Booster dynamique. **1.0** = Normal. **1.15** = Dynamique de mouvement forcée.
+*   **force_ref :** Injecte l'image source comme référence dure (Verrouillage d'Identité).
+
+### ⚡ Wan Image To Video Fidelity
+**Fichier :** `wan_fast.py`
+Version optimisée pour la vitesse tout en maintenant la précision FP32 sur le canvas latent. Utilise `torch.full` pour l'efficacité mémoire.
+
+---
+
+## ⚡ Phase 5 : Capteurs & Accélérateurs (Outils Omega)
+
+### 🚀 Wan Hardware Accelerator (Omega)
+**Fichier :** `wan_accelerator.py`
+*   **enable_tf32 :** Active TensorFloat-32 sur GPU Ampere+ (Gain vitesse ~30%).
+*   **Attention Slicer :** Gestion intelligente de SDPA (Flash Attention) vs Slicing Manuel pour faible VRAM.
+
+### 👁️ Wan Vision & Text OneShot Cache
+**Fichiers :** `wan_i2v_tools.py` & `wan_text_encoder.py`
+*   **Vision Cache :** Hash l'image d'entrée (incluant l'échantillonnage) pour éviter de ré-encoder le CLIP Vision.
+*   **Text Cache :** Utilise la **Mémoire Épinglée (Pinned Memory/DMA)** pour transférer les embeddings texte du CPU au GPU instantanément.
+
+### 📐 Wan Resolution Savant (FP32)
+**Fichier :** `wan_i2v_tools.py`
+Redimensionne les images pour qu'elles soient divisibles par 16 (Requis par Wan). Utilise l'interpolation **FP32** (Lanczos/Bicubic) pour éviter l'aliasing.
+
+---
+
+## 🛠️ Phase 6 : Post-Production & Automatisation
+
+### 💾 Wan Video Compressor (H.265)
+**Fichier :** `wan_compressor.py`
+Encode la sortie en H.265 10-bits.
+*   **Thread Safe :** Limite auto les threads (Max 16) pour éviter les crashs x265 sur les gros CPU (Threadripper/i9).
+*   **Modes :** Web/Discord (CRF 26), Master (CRF 22), Archival (CRF 18).
 
 ### 🧹 Wan Cycle Terminator
-Nettoyage chirurgical de la mémoire via API Windows.
+**Fichier :** `wan_cleanup.py`
+Nettoyage chirurgical de la mémoire via API Windows `EmptyWorkingSet`. À utiliser lors du changement de workflow lourd pour purger RAM/VRAM sans crash.
 
-### 📐 Resolution Savant (FP32)
-Redimensionne les images pour qu'elles soient divisibles par 16. Utilise l'interpolation **FP32** pour éviter le banding des couleurs.
-
----
-
-## 🎭 Phase 6 : Génération Mimétique (Fidelity & Ultra)
-
-**Classe :** `WanImageToVideoUltra` | `WanImageToVideoFidelity`
-
-Le moteur **"Ultra"** est une ré-ingénierie complète du processus I2V standard, axée sur la précision FP32 absolue et le contrôle dynamique.
-
-### 🌟 Fonctionnalités Clés (Nœud Ultra)
-*   **Pipeline FP32 Forcé :** Tous les calculs mathématiques se font en 32 bits pour éliminer les bandes de couleurs.
-*   **Bicubic AA :** Upscaling haut de gamme avec anti-aliasing (meilleur que le bilinéaire).
-*   **Detail Boost (Paroxysme) :** Une matrice de netteté GPU appliquée *avant* l'encodage pour contrer le flou du VAE.
-*   **Amplification de Mouvement :** Un booster dynamique mathématique qui résout les problèmes de "vidéo statique".
-*   **Injection de Référence :** Force le modèle à "se souvenir" de l'identité de la source (Identity Lock).
-*   **Durée Intelligente :** Menu déroulant pour le temps exact (5s, 10s...) et le calcul des frames.
-
-| Paramètre | Description |
-| :--- | :--- |
-| `video_duration` | Menu (ex: "5s (114 frames)"). Calcule auto le bon nombre de frames. |
-| `detail_boost` | Facteur de netteté. **0.5** recommandé pour un HD naturel. |
-| `motion_amp` | Booster dynamique. **1.0** = Normal. **1.15** = Mouvement forcé. |
-| `force_ref` | **True** = Injecte l'image source comme référence dure (Haute Fidélité). |
+### 📉 Auto Image Optimizers
+**Fichiers :** `auto_wan_node.py` & `auto_half_node.py`
+*   **Auto Wan Optimizer :** Redimensionne intelligemment pour protéger contre le OOM (Max 1024px) tout en respectant le Modulo 16.
+*   **Auto Half Size :** Downscaler rapide 50% avec antialiasing bicubique.
 
 ---
 
