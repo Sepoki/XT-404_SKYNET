@@ -1,278 +1,281 @@
 import torch
-import comfy.model_management as mm
-import sys
+import torch.nn.functional as F
 
 # ==============================================================================
-# WAN ARCHITECT: MAGCACHE OMEGA + T-1000 SENTINEL (V10.0 Final)
+# PROJECT: CYBERDYNE GENISYS [OMNISCIENT EDITION]
+# MODEL: T-3000 (Nanotech Phase Controller)
+# STATUS: GOLDEN MASTER (FINAL)
 # ==============================================================================
 
-class T1000_Sentinel:
+class CYBER_HUD:
     """
-    Module de télémétrie active.
-    Ne modifie PAS le signal, mais l'observe au microscope.
-    Affiche la fidélité réelle du signal par rapport au Prompt.
+    Interface Tactique Omnisciente (V5).
+    Affiche la télémétrie complète même pendant les phases de verrouillage.
+    Design: Military / Cyberpunk.
     """
-    COLORS = {
-        "CYAN": "\033[96m",
-        "GREEN": "\033[92m",
-        "YELLOW": "\033[93m",
-        "RED": "\033[91m",
-        "RESET": "\033[0m",
-        "BOLD": "\033[1m"
+    # Palette T-800 Vision
+    C = {
+        "CYAN":   "\033[38;5;51m",  # Data Stream
+        "RED":    "\033[38;5;196m", # Critical / Skynet
+        "GREEN":  "\033[38;5;46m",  # Stable
+        "AMBER":  "\033[38;5;214m", # Kinetic / Warning
+        "PURPLE": "\033[38;5;135m", # Cache Hit
+        "GREY":   "\033[38;5;240m", # Dimmed / Structure
+        "WHITE":  "\033[38;5;255m", # High Light
+        "RESET":  "\033[0m",
+        "BOLD":   "\033[1m",
+        "DIM":    "\033[2m"
     }
 
     @staticmethod
-    def report(step, flow_type, flow_id, drift, threshold, action, is_hard_lock):
-        # Calcul de la fidélité du signal (1.0 - dérive)
-        # Une dérive de 0.02 (le seuil) signifie 98% de fidélité structurelle.
-        fidelity = max(0, (1.0 - drift)) * 100.0
+    def render_dashboard(step, phase, tao, mag, drift, thresh, action, tactic_msg):
+        # --- 1. BARRE D'INTEGRITE (SIGNAL HEALTH) ---
+        # 100% = Image Parfaite (Drift 0).
+        signal_integrity = max(0, (1.0 - (drift * 8))) * 100.0
+        sig_blocks = int(signal_integrity / 10)
+        # Rendu graphique : ▰ plein, ▱ vide
+        sig_viz = "▰" * sig_blocks + "▱" * (10 - sig_blocks)
         
-        # Barre visuelle de qualité
-        bars = int(fidelity / 5) # 20 barres max
-        visual_bar = "█" * bars + "░" * (20 - bars)
-        
-        color = T1000_Sentinel.COLORS["GREEN"]
-        if drift > (threshold * 0.8): color = T1000_Sentinel.COLORS["YELLOW"]
-        if drift >= threshold: color = T1000_Sentinel.COLORS["RED"]
-        
-        status = "LOCKED" if is_hard_lock else action
-        
-        # Formatage chirurgical pour CMD
-        # ID est tronqué aux 6 derniers chiffres pour lisibilité
-        short_id = str(flow_id)[-6:] if isinstance(flow_id, int) else str(flow_id)
+        # Couleur dynamique du signal
+        s_col = CYBER_HUD.C['GREEN']
+        if signal_integrity < 75: s_col = CYBER_HUD.C['CYAN']
+        if signal_integrity < 40: s_col = CYBER_HUD.C['AMBER']
+        if signal_integrity < 15: s_col = CYBER_HUD.C['RED']
 
+        # --- 2. BARRE DE PRESSION (LOAD METER) ---
+        # Montre la proximité du seuil de rupture.
+        load_pct = min(1.0, (drift / (thresh + 1e-6))) * 100.0
+        load_blocks = int(load_pct / 10)
+        load_viz = "▮" * load_blocks + " " * (10 - load_blocks)
+        
+        l_col = CYBER_HUD.C['GREY']
+        if load_pct > 80: l_col = CYBER_HUD.C['RED']
+        elif load_pct > 50: l_col = CYBER_HUD.C['AMBER']
+
+        # --- 3. FORMATAGE DES VALEURS ---
+        # Gestion du Step 0 (Pas de référence)
+        if step == 0:
+            tao_s, mag_s, drift_s = "------", "------", "------"
+            load_viz, sig_viz = "..........", ".........."
+        else:
+            tao_s = f"{tao:.4f}"
+            mag_s = f"{mag:.4f}"
+            drift_s = f"{drift:.4f}"
+
+        # --- 4. COLORIMÉTRIE CONTEXTUELLE ---
+        if phase == "INJECT":
+            p_lbl = f"{CYBER_HUD.C['RED']}INJECT{CYBER_HUD.C['RESET']}"
+            t_msg = f"{CYBER_HUD.C['RED']}{tactic_msg:<12}{CYBER_HUD.C['RESET']}"
+            val_col = CYBER_HUD.C['DIM'] # Valeurs grisées mais visibles
+        elif phase == "MOTION":
+            p_lbl = f"{CYBER_HUD.C['AMBER']}MOTION{CYBER_HUD.C['RESET']}"
+            t_msg = f"{CYBER_HUD.C['AMBER']}{tactic_msg:<12}{CYBER_HUD.C['RESET']}"
+            val_col = CYBER_HUD.C['WHITE']
+        else: # STABLE
+            p_lbl = f"{CYBER_HUD.C['CYAN']}STABLE{CYBER_HUD.C['RESET']}"
+            t_msg = f"{CYBER_HUD.C['CYAN']}{tactic_msg:<12}{CYBER_HUD.C['RESET']}"
+            val_col = CYBER_HUD.C['WHITE']
+
+        # --- 5. ETIQUETTE ACTION ---
+        if "CACHE" in action:
+            act = f"{CYBER_HUD.C['PURPLE']}▓█ CACHED █▓{CYBER_HUD.C['RESET']}"
+        elif "LOCK" in action:
+            act = f"{CYBER_HUD.C['RED']}🔒 LOCKED  {CYBER_HUD.C['RESET']}"
+        else: # Recalc
+            act = f"{CYBER_HUD.C['GREY']}●  RECALC  {CYBER_HUD.C['RESET']}"
+
+        # Séparateur Vertical
+        SEP = f"{CYBER_HUD.C['GREY']}│{CYBER_HUD.C['RESET']}"
+
+        # --- ASSEMBLAGE FINAL ---
+        # Ex: ST:01 │ INJECT │ WARMUP SEQ   │ T:0.012 M:0.045 │ Δ:0.021/0.025 [|||.......] │ SIG:▰▰▰▰▰▱▱▱▱▱ │ 🔒 LOCKED
         msg = (
-            f"{T1000_Sentinel.COLORS['CYAN']}[T-1000] Step {step:02d}{T1000_Sentinel.COLORS['RESET']} | "
-            f"{flow_type:<8} | "
-            f"ID: ..{short_id} | "
-            f"Drift: {drift:.5f} / {threshold:.3f} | "
-            f"{color}Fidelity: {fidelity:06.3f}% {visual_bar}{T1000_Sentinel.COLORS['RESET']} | "
-            f"[{status}]"
+            f"{CYBER_HUD.C['BOLD']}ST:{step:02d}{CYBER_HUD.C['RESET']} {SEP} "
+            f"{p_lbl} {SEP} "
+            f"{t_msg} {SEP} "
+            f"{val_col}T:{tao_s} M:{mag_s}{CYBER_HUD.C['RESET']} {SEP} "
+            f"{CYBER_HUD.C['DIM']}Δ:{CYBER_HUD.C['RESET']}{val_col}{drift_s}{CYBER_HUD.C['RESET']}/{thresh:.3f} "
+            f"{l_col}[{load_viz}]{CYBER_HUD.C['RESET']} {SEP} "
+            f"SIG:{s_col}{sig_viz}{CYBER_HUD.C['RESET']} {SEP} "
+            f"{act}"
         )
         print(msg)
 
-class MagCacheState:
+class GenisysState:
     def __init__(self):
         self.prev_latent = None      
         self.prev_output = None      
         self.accumulated_err = 0.0   
         self.step_counter = 0        
-        self.last_timestep = -1.0    
+        self.last_timestep = -1.0
+        self.momentum = 0 
 
-class Wan_MagCache_Patch:
+class Wan_Cyberdyne_Genisys:
     """
-    **Wan 2.2 MagCache (Omega Edition) + T-1000 Sentinel**
-    
-    Includes:
-    - FP8/BF16 Quantum Safety (Fixes QuantizedTensor crashes)
-    - Dual-Flow Isolation (Prompts separated via Memory Pointer)
-    - T-1000 Telemetry (Real-time signal fidelity analysis)
+    **Wan 2.2 CYBERDYNE GENISYS [OMNISCIENT]**
+    Le système de cache ultime pour Wan 2.2.
+    Adhérence Parfaite au Prompt + Accélération Sécurisée.
     """
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
                 "model": ("MODEL",),
-                "enable_mag_cache": ("BOOLEAN", {"default": True}),
-                # Seuil recommandé pour Wan 2.2 = 0.020
-                "mag_threshold": ("FLOAT", {"default": 0.020, "min": 0.001, "max": 0.5, "step": 0.001}),
-                # 0.3 = Force le calcul sur les 30% premiers steps
-                "start_step_percent": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0}),
-                "verbose_t1000": ("BOOLEAN", {"default": True, "label": "Activate T-1000 Display"}),
+                "system_status": ("BOOLEAN", {"default": True, "label": "T-3000 ONLINE"}),
+                
+                # REGLAGE 1: SECURITE (Seuil de déclenchement)
+                # 10 = Ultra Strict (0.010), 1 = Laxiste (0.055). Recommandé: 7 (0.025)
+                "security_level": ("INT", {"default": 7, "min": 1, "max": 10}),
+                
+                # REGLAGE 2: INJECTION PROTOCOL
+                # Nombre de steps au début où le cache est INTERDIT. 
+                # Crucial pour imprimer le prompt (ex: Face Split). Recommandé: 6.
+                "warmup_steps": ("INT", {"default": 6, "min": 0, "max": 50}),
+                
+                # REGLAGE 3: KINETIC MOMENTUM
+                # Nombre de frames calculées de force après un mouvement détecté.
+                # Empêche de figer une animation en cours. Recommandé: 2.
+                "kinetic_momentum": ("INT", {"default": 2, "min": 0, "max": 5}),
+                
+                "hud_display": ("BOOLEAN", {"default": True, "label": "Enable HUD"}),
             }
         }
 
     RETURN_TYPES = ("MODEL",)
-    RETURN_NAMES = ("certified_model",)
-    FUNCTION = "apply_magcache"
-    CATEGORY = "Wan_Architect/Performance"
+    RETURN_NAMES = ("T3000_Model",)
+    FUNCTION = "deploy_genisys"
+    CATEGORY = "Wan_Architect/Skynet"
 
-    def apply_magcache(self, model, enable_mag_cache, mag_threshold, start_step_percent, verbose_t1000):
-        if not enable_mag_cache:
+    def deploy_genisys(self, model, system_status, security_level, warmup_steps, kinetic_momentum, hud_display):
+        if not system_status:
             return (model,)
 
-        m = model.clone()
-        # Initialisation du stockage d'état Omega
-        if not hasattr(m, "wan_omega_state"):
-            m.wan_omega_state = {}
+        # Calcul automatique du Seuil (Threshold)
+        base_threshold = 0.060 - (security_level * 0.005)
+        if base_threshold < 0.005: base_threshold = 0.005
 
-        def magcache_wrapper(model_function, params):
-            # 1. Extraction et Typage Sécurisé
+        m = model.clone()
+        if not hasattr(m, "genisys_core"):
+            m.genisys_core = {}
+
+        def t3000_protocol(model_function, params):
             input_x = params.get("input")
             timestep = params.get("timestep")
             c = params.get("c", {})
             
-            try:
-                ts_val = timestep[0].item() if isinstance(timestep, torch.Tensor) else float(timestep)
-            except:
-                ts_val = 0.0
+            try: ts_val = timestep[0].item() if isinstance(timestep, torch.Tensor) else float(timestep)
+            except: ts_val = 0.0
 
-            # 2. Dual-Flow Identification (Prompt DNA)
-            # Cette étape garantit que le Prompt Positif ne se mélange jamais au Négatif
-            flow_type = "UNKNOWN"
-            try:
-                if "c_crossattn" in c:
-                    sig = c["c_crossattn"]
-                    flow_id = sig.data_ptr() # Signature mémoire unique du Prompt
-                    flow_type = "POSITIVE"
-                elif "y" in c:
-                    sig = c["y"]
-                    flow_id = sig.data_ptr()
-                    flow_type = "COND_IMG"
-                else:
-                    # Unconditional / Negative Prompt
-                    flow_id = 0 
-                    flow_type = "NEGATIVE" 
-            except:
-                flow_id = "Global"
-
-            # Init State unique par Flux
-            state_key = f"{flow_type}_{flow_id}"
-            if state_key not in m.wan_omega_state:
-                m.wan_omega_state[state_key] = MagCacheState()
+            # 1. Identification du Flux (Isolation Prompt Pos/Neg/Img)
+            try: 
+                if "c_crossattn" in c: fid = c["c_crossattn"].data_ptr()
+                else: fid = 0
+            except: fid = 0
+            key = f"UNIT_{fid}"
             
-            state = m.wan_omega_state[state_key]
+            if key not in m.genisys_core:
+                m.genisys_core[key] = GenisysState()
+            state = m.genisys_core[key]
 
-            # 3. Reset Detection (Nouveau Batch ou Nouvelle Image)
-            if state.last_timestep != -1:
-                # Si le temps saute de plus de 200, c'est une nouvelle génération
-                if abs(ts_val - state.last_timestep) > 200:
-                    state.prev_latent = None
-                    state.accumulated_err = 0.0
-                    state.step_counter = 0
+            # 2. Reset Scene si grand saut temporel
+            if state.last_timestep != -1 and abs(ts_val - state.last_timestep) > 200:
+                state.prev_latent = None
+                state.accumulated_err = 0.0
+                state.step_counter = 0
+                state.momentum = 0
             state.last_timestep = ts_val
 
-            # 4. Helper Inference (Fonction de calcul réel)
-            def run_inference(reason="EXEC"):
-                out = model_function(input_x, timestep, **c)
-                state.prev_output = out
-                # On stocke une copie FP32 propre pour la comparaison future
-                state.prev_latent = input_x.detach().float() 
-                state.accumulated_err = 0.0 # Reset error on calc
+            # --- A. CALCUL TÉLÉMÉTRIQUE (OMNISCIENT) ---
+            # On calcule les métriques AVANT de décider, pour l'affichage.
+            curr = input_x.detach().float()
+            tao = 0.0
+            mag = 0.0
+            drift = 0.0
+            
+            # On ne peut calculer la différence que si on a une frame précédente
+            if state.prev_latent is not None:
+                prev = state.prev_latent
                 
-                if verbose_t1000:
-                    T1000_Sentinel.report(state.step_counter, flow_type, flow_id, 0.0, mag_threshold, reason, is_hard_lock=False)
+                # 1. Analyse Tao (Structurelle Vectorielle)
+                c_flat = curr.view(-1)
+                p_flat = prev.view(-1)
+                cos = F.cosine_similarity(c_flat.unsqueeze(0), p_flat.unsqueeze(0), eps=1e-6).item()
+                norm_r = torch.norm(c_flat, p=2).item() / (torch.norm(p_flat, p=2).item() + 1e-6)
+                tao = (1.0 - cos) + abs(1.0 - norm_r)
+                
+                # 2. Analyse Mag (Magnitude/Luminance)
+                diff = (curr - prev).abs().mean()
+                mag = (diff / (curr.abs().mean() + 1e-6)).item()
+                
+                # 3. Fusion Score (Poids: 70% Structure / 30% Lumière)
+                drift = (tao * 0.70) + (mag * 0.30)
+                
+            # --- B. MOTEUR D'EXECUTION ---
+
+            def execute_cycle(decision, phase, tactic, force_recalc=False):
+                # Si c'est un calcul forcé ou un cache miss
+                if force_recalc:
+                    out = model_function(input_x, timestep, **c)
+                    state.prev_output = out
+                    state.prev_latent = curr # Mise à jour référence
+                    state.accumulated_err = 0.0
+                    
+                    # Si c'était un mouvement naturel (RECALC), on active le Momentum
+                    if decision == "RECALC": 
+                        state.momentum = kinetic_momentum
+                else:
+                    # Cache Hit
+                    state.accumulated_err = drift # On conserve l'erreur actuelle
+                    out = state.prev_output
+
+                if hud_display:
+                    CYBER_HUD.render_dashboard(
+                        state.step_counter, 
+                        phase, 
+                        tao, 
+                        mag, 
+                        drift, 
+                        base_threshold, 
+                        decision, 
+                        tactic
+                    )
                 
                 state.step_counter += 1
                 return out
 
-            # 5. HARD LOCKS (Sécurités Absolues)
-            
-            # Lock A: Initialisation (Step 0)
+            # --- C. ARBRE DE DECISION TACTIQUE ---
+
+            # 1. HARD LOCKS (Initialisation)
             if state.prev_latent is None:
-                if verbose_t1000:
-                    T1000_Sentinel.report(state.step_counter, flow_type, flow_id, 1.0, mag_threshold, "INIT", is_hard_lock=True)
-                
-                # Exécution directe sans passer par run_inference pour éviter complexité
-                state.prev_output = model_function(input_x, timestep, **c)
-                state.prev_latent = input_x.detach().float()
-                state.step_counter += 1
-                return state.prev_output
+                return execute_cycle("LOCK", "INJECT", "BOOT SEQ", True)
             
-            # Lock B: Dimension Mismatch (Changement de résolution en cours de route)
-            if input_x.shape != state.prev_latent.shape:
-                return run_inference("DIM_CHG")
+            # 2. PHASE 1: INJECTION (Warmup Forcé)
+            if state.step_counter < warmup_steps:
+                # On force le calcul, mais on affiche les métriques calculées en A.
+                return execute_cycle("LOCK", "INJECT", "WARMUP SEQ", True)
 
-            # Lock C: Turbo / Start Percent
-            # Force les calculs initiaux (Steps 0, 1...) selon le paramètre start_step_percent
-            force_calc = False
-            
-            # Règle absolue : Les 2 premiers steps sont TOUJOURS calculés pour Wan
-            if state.step_counter < 2: 
-                force_calc = True
-            elif start_step_percent > 0:
-                # Si step_counter est faible (ex: < 5) et qu'on demande > 20%
-                if state.step_counter < 6 and start_step_percent >= 0.2:
-                    force_calc = True
-            
-            if force_calc:
-                if verbose_t1000:
-                     # On calcule quand même le drift pour l'info T-1000
-                    curr_f32 = input_x.detach().float()
-                    prev_f32 = state.prev_latent
-                    diff = (curr_f32 - prev_f32).abs().mean()
-                    norm = curr_f32.abs().mean() + 1e-6
-                    current_drift = (diff / norm).item()
-                    T1000_Sentinel.report(state.step_counter, flow_type, flow_id, current_drift, mag_threshold, "FORCED", is_hard_lock=True)
-                
-                # Exécution forcée
-                out = model_function(input_x, timestep, **c)
-                state.prev_output = out
-                state.prev_latent = input_x.detach().float()
-                state.accumulated_err = 0.0 
-                state.step_counter += 1
-                return out
+            # 3. PHASE 2: KINETIC MOMENTUM (Protection du mouvement)
+            if state.momentum > 0:
+                state.momentum -= 1
+                return execute_cycle("LOCK", "MOTION", f"KINETIC ({state.momentum+1})", True)
 
-            # 6. ANALYSE DU SIGNAL (Cœur du T-1000)
-            
-            # A. Cast FP32 (Quantum Safety)
-            # Empêche le crash "QuantizedTensor unhandled operation"
-            curr_f32 = input_x.detach()
-            if curr_f32.dtype != torch.float32: 
-                curr_f32 = curr_f32.float()
-            
-            prev_f32 = state.prev_latent
+            # 4. PHASE 3: ANALYSE & DÉCISION
+            potential_error = state.accumulated_err + drift
 
-            # B. Calcul Delta (L1 Relative)
-            diff = (curr_f32 - prev_f32).abs().mean()
-            norm = curr_f32.abs().mean() + 1e-6
-            relative_diff = (diff / norm).item()
-
-            # C. Simulation Accumulation
-            potential_total_err = state.accumulated_err + relative_diff
-
-            # 7. DÉCISION DU CACHE
-            if potential_total_err < mag_threshold:
-                # CACHE HIT : Le signal est jugé fidèle
-                state.accumulated_err = potential_total_err # On valide l'accumulation
-                
-                if verbose_t1000:
-                    T1000_Sentinel.report(state.step_counter, flow_type, flow_id, state.accumulated_err, mag_threshold, "CACHED", is_hard_lock=False)
-                
-                state.step_counter += 1
-                return state.prev_output
+            if potential_error < base_threshold:
+                # >>> CACHE HIT <<<
+                return execute_cycle("CACHE", "STABLE", "OPTIMIZED", False)
             else:
-                # CACHE MISS : Le signal dérive trop -> Recalcul
-                if verbose_t1000:
-                    T1000_Sentinel.report(state.step_counter, flow_type, flow_id, potential_total_err, mag_threshold, "RECALC", is_hard_lock=False)
-                
-                out = model_function(input_x, timestep, **c)
-                state.prev_output = out
-                state.prev_latent = input_x.detach().float()
-                state.accumulated_err = 0.0 # Reset erreur
-                state.step_counter += 1
-                return out
+                # >>> RECALC <<<
+                return execute_cycle("RECALC", "MOTION", "DRIFT DETECT", True)
 
-        m.set_model_unet_function_wrapper(magcache_wrapper)
+        m.set_model_unet_function_wrapper(t3000_protocol)
         return (m,)
 
-class Wan_Hybrid_VRAM_Guard:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "vae": ("VAE",),
-                "samples": ("LATENT",),
-                # Paramètres legacy conservés pour compatibilité UI
-                "tile_size_spatial": ("INT", {"default": 1024}),
-                "enable_cpu_offload": ("BOOLEAN", {"default": True}),
-            }
-        }
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("images",)
-    FUNCTION = "decode_standard"
-    CATEGORY = "Wan_Architect/Performance"
-    
-    def decode_standard(self, vae, samples, tile_size_spatial, enable_cpu_offload):
-        # Pass-through vers le décodeur natif optimisé
-        return (vae.decode(samples["samples"]),)
-
-# MAPPINGS
-NODE_CLASS_MAPPINGS = {
-    "Wan_MagCache_Patch": Wan_MagCache_Patch,
-    "Wan_Hybrid_VRAM_Guard": Wan_Hybrid_VRAM_Guard
+# MAPPINGS COMFYUI
+NODE_CLASS_MAPPINGS = { 
+    "Wan_Cyberdyne_Genisys": Wan_Cyberdyne_Genisys 
 }
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "Wan_MagCache_Patch": "Wan MagCache (T-1000 Sentinel)",
-    "Wan_Hybrid_VRAM_Guard": "Wan Decode (Native Pass)"
+NODE_DISPLAY_NAME_MAPPINGS = { 
+    "Wan_Cyberdyne_Genisys": "💀 Cyberdyne Genisys [OMNISCIENT]" 
 }
