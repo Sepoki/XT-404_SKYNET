@@ -9,12 +9,12 @@ import gc
 
 class WanImageToVideoUltra:
     """
-    WanImageToVideoUltra - REPORTER V18 (Ultimate + Smart VRAM Scan + Full Verbose).
+    WanImageToVideoUltra - HYBRID V19 (Moteur V18 + Motion Engine Classic).
     
-    Améliorations V18 :
-    - SMART VRAM SCAN : Rapport complet (Nom GPU, VRAM Totale, Logique de décision).
-    - FULL VERBOSE : Chaque étape détaille la résolution, le format et l'usage mémoire.
-    - Toujours inclus : GPU Lock, FP16/BF16, Async Transfer, Nuclear Norm.
+    Correction Anomalie Visuelle :
+    - Retour à l'algorithme "Classic" pour le Motion Amp (Linear + Mean Centering).
+    - Supprime les artefacts noirs/saturés causés par le Soft Limiter (tanh).
+    - Conserve toutes les optimisations V18 (Smart VRAM, Tiled, Async, Reporter).
     """
 
     @classmethod
@@ -52,7 +52,7 @@ class WanImageToVideoUltra:
             self.t0 = time.time()
             self.step_t0 = self.t0
             print(f"\n╔══════════════════════════════════════════════════════════════╗", flush=True)
-            print(f"║   [WanUltra V18] DEMARRAGE (REPORTER EDITION)                ║", flush=True)
+            print(f"║   [WanUltra V19] DEMARRAGE (HYBRID FIX EDITION)              ║", flush=True)
             print(f"╚══════════════════════════════════════════════════════════════╝", flush=True)
             return
         
@@ -77,7 +77,6 @@ class WanImageToVideoUltra:
         """Scan Matériel et Décision Logique"""
         print(f"\n🔎 [WanUltra] --- SMART VRAM SCANNER ---", flush=True)
         
-        # 1. Détection Force Manuelle
         if "512" in strategy_str: 
             print(f"   └── Mode: MANUEL (Safe 512px) - Ignorer VRAM", flush=True)
             return 512
@@ -88,7 +87,6 @@ class WanImageToVideoUltra:
             print(f"   └── Mode: MANUEL (Ultra 1280px) - Ignorer VRAM", flush=True)
             return 1280
         
-        # 2. Mode AUTO (Smart Scan)
         try:
             device = comfy.model_management.get_torch_device()
             total_mem_bytes = comfy.model_management.get_total_memory(device)
@@ -98,40 +96,31 @@ class WanImageToVideoUltra:
             print(f"   ├── GPU Detecté : {gpu_name}", flush=True)
             print(f"   ├── VRAM Totale : {total_mem_gb:.2f} GB", flush=True)
             
-            # Logique de décision
             if total_mem_gb > 22.0: 
                 print(f"   ├── Analyse : VRAM Massive (>22GB). Mode ULTRA activé.", flush=True)
                 print(f"   └── DECISION : Tuiles 1280x1280", flush=True)
-                return 1280 # RTX 3090/4090
+                return 1280
             elif total_mem_gb > 10.0: 
                 print(f"   ├── Analyse : VRAM Confortable (>10GB). Mode FAST activé.", flush=True)
                 print(f"   └── DECISION : Tuiles 1024x1024", flush=True)
-                return 1024 # RTX 3060/4070/2080Ti
+                return 1024
             else: 
                 print(f"   ├── Analyse : VRAM Limitée (<10GB). Mode SAFE activé.", flush=True)
                 print(f"   └── DECISION : Tuiles 512x512", flush=True)
-                return 512 # 8GB Cards
-                
+                return 512
         except Exception as e:
             print(f"   └── ⚠️ ERREUR SCAN ({e}) -> Fallback Safe 512px", flush=True)
             return 512
 
     def _sanitize_tensor(self, tensor, target_w, target_h, device, dtype):
-        """Nettoyage et Interpolation (Optimisé)"""
-        # Transfert Asynchrone
         if tensor.device != device or tensor.dtype != dtype:
             tensor = tensor.to(device=device, dtype=dtype, non_blocking=True)
 
         if tensor.dim() == 3: tensor = tensor.unsqueeze(0)
-            
         tensor_bchw = tensor.movedim(-1, 1)
-        
-        # Interpolation
         tensor_resized = torch.nn.functional.interpolate(
             tensor_bchw, size=(target_h, target_w), mode="bicubic", align_corners=False, antialias=True
         )
-        
-        # Clamping
         tensor_resized = torch.clamp(tensor_resized, 0.0, 1.0)
         return tensor_resized.movedim(1, -1)
 
@@ -151,13 +140,10 @@ class WanImageToVideoUltra:
         return result_bchw.movedim(1, -1)
 
     def _smart_encode(self, vae, pixels, tile_size, description="Unknown", device=None):
-        """Mouchard VAE avec Rapport de Décision"""
-        # Sécurité GPU
         if device and pixels.device != device:
              pixels = pixels.to(device, non_blocking=True)
         
         use_tiled = hasattr(vae, "encode_tiled")
-        
         print(f"   ├── {description} : Input Shape {list(pixels.shape)}", flush=True)
         
         if use_tiled:
@@ -173,18 +159,14 @@ class WanImageToVideoUltra:
             return vae.encode(pixels)
 
     def execute(self, positive, negative, vae, video_frames, width, height, batch_size, detail_boost, motion_amp, force_ref, precision, tile_strategy, start_image=None, clip_vision_output=None):
-        # 0. Initialisation
         self._log("Init")
         
         device = comfy.model_management.get_torch_device()
         target_dtype = self._get_dtype(precision)
-        
-        # 1. SCAN MATERIEL & DECISION TUILES
         tile_size = self._determine_tile_size(tile_strategy)
         
         self._log("Configuration", f"Precision: {precision.upper()} | Device: {device}")
 
-        # 2. GPU LOCK
         try:
             if hasattr(comfy.model_management, "load_models_gpu"):
                  models_to_load = [vae.patcher] if hasattr(vae, "patcher") else [vae]
@@ -200,16 +182,11 @@ class WanImageToVideoUltra:
         latent = torch.zeros([batch_size, 16, latent_t, height // 8, width // 8], device=device, dtype=torch.float32)
 
         if start_image is not None:
-            # 3. SANITIZATION (Nuclear Norm)
             img_final = self._sanitize_tensor(start_image, width, height, device, target_dtype)
-            
-            # 4. Detail Boost
             if detail_boost > 0:
                 img_final = self._enhance_details(img_final, detail_boost)
-            
             self._log(f"Preparation Image HD", f"Shape: {list(img_final.shape)} | Dtype: {img_final.dtype}")
 
-            # 5. Encodage Reference
             ref_latent = None
             if force_ref:
                 try:
@@ -221,7 +198,6 @@ class WanImageToVideoUltra:
                     print(f"❌ [WanUltra] ERREUR REF ENCODE: {e}", flush=True)
                     ref_latent = None
             
-            # 6. Préparation Volume Vidéo
             valid_frames = min(img_final.shape[0], length)
             video_input = torch.full((length, height, width, 3), 0.5, dtype=target_dtype, device=device)
             video_input[:valid_frames] = img_final[:valid_frames]
@@ -229,7 +205,6 @@ class WanImageToVideoUltra:
             del start_image
             self._log("Volume Video Created", f"Frames: {length}")
 
-            # 7. Encodage VAE Principal
             try:
                 print(f"🚀 [WanUltra] Lancement Encodage Video Principal...", flush=True)
                 concat_latent_image = self._smart_encode(vae, video_input, tile_size, description="Video Volume", device=device)
@@ -240,24 +215,26 @@ class WanImageToVideoUltra:
             del video_input, img_final
             self._log("VAE Video Encoded")
 
-            # 8. MOTION AMPLIFICATION
+            # --- CORRECTION ICI : RETOUR A L'ALGO "CLASSIC" DU FICHIER .OLD ---
             if motion_amp > 1.0:
                 base_latent = concat_latent_image[:, :, 0:1]
                 gray_latent = concat_latent_image[:, :, 1:]
                 
                 diff = gray_latent - base_latent
-                std = diff.std()
-                if std > 0 and std > 1.0: diff = diff / std
                 
-                limit = 2.5 
-                boosted = diff * motion_amp
-                soft_diff = torch.tanh(boosted / limit) * limit
+                # RETOUR ALGO STABLE (Mean Centering + Linear + Hard Clamp)
+                diff_mean = diff.mean(dim=(1, 3, 4), keepdim=True)
+                diff_centered = diff - diff_mean
                 
-                scaled_latent = base_latent + soft_diff
+                scaled_latent = base_latent + diff_centered * motion_amp + diff_mean
+                
+                # Le clamp -6.0/6.0 est spécifique au VAE WanVideo et évite les artefacts noirs
+                scaled_latent = torch.clamp(scaled_latent, -6.0, 6.0)
+                
                 concat_latent_image = torch.cat([base_latent, scaled_latent], dim=2)
-                self._log(f"Motion Amp Applied", f"Factor: {motion_amp}")
+                self._log(f"Motion Amp Applied (Classic Mode)", f"Factor: {motion_amp}")
+            # ------------------------------------------------------------------
 
-            # 9. Conditioning
             mask = torch.ones((1, 1, latent.shape[2], concat_latent_image.shape[-2], concat_latent_image.shape[-1]), device=device, dtype=torch.float32)
             start_latent_end_index = ((valid_frames - 1) // 4) + 1
             mask[:, :, :start_latent_end_index] = 0.0
