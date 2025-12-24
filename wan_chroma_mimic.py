@@ -1,20 +1,60 @@
 import torch
 import torch.nn.functional as F
+import comfy.model_management as mm
+import comfy.utils
+import sys
+
+# ==============================================================================
+# ARCHITECTURE: XT-404 OMEGA | CHROMA MIMIC SENTINEL
+# VERSION: 3.2 (PROGRESSIVE TRACKING & VRAM SAFETY)
+# ROLE: Color Matching + Signal Validation + RIFE Correction + Real-Time Feedback
+# ==============================================================================
+
+class XT_Mouchard_Mimetic:
+    """
+    Module de Télémétrie dédié à la Colorimétrie.
+    Vérifie la conformité du Gamut et la plage dynamique.
+    """
+    HEADER = "\033[96m[XT-MIMIC]\033[0m"
+    RESET = "\033[0m"
+    
+    @staticmethod
+    def analyze_signal(tag, tensor):
+        # Analyse rapide sur un échantillon si le tenseur est énorme
+        if tensor.shape[0] > 10:
+            sample = tensor[::10] # 1 frame sur 10 pour aller vite
+        else:
+            sample = tensor
+
+        mean = sample.mean().item()
+        min_val = sample.min().item()
+        max_val = sample.max().item()
+        std_color = sample.std(dim=-1).mean().item()
+        
+        clipped_high = (sample >= 0.999).sum().item()
+        total_px = sample.numel()
+        clip_pct = (clipped_high / total_px) * 100.0
+        
+        status = "\033[92mOK\033[0m"
+        warn = ""
+        
+        if clip_pct > 1.0: 
+            status = "\033[93mWARN\033[0m"
+            warn = " -> \033[93mHigh Signal Detected (Rolloff Active)\033[0m"
+        if clip_pct > 5.0:
+            status = "\033[91mCRITICAL\033[0m"
+            warn = " -> \033[91mSignal Clipping! Auto-Correction Engaged.\033[0m"
+
+        print(f"{XT_Mouchard_Mimetic.HEADER} 🎨 {tag} | DynRange: [{min_val:.3f}, {max_val:.3f}] | SaturationIndex: {std_color:.3f}")
+        print(f"   └── Signal Integrity: {status} (Clip: {clip_pct:.2f}%){warn}")
 
 class Wan_Chroma_Mimic:
     """
-    Wan Chroma Mimic - TURBO OLED EDITION (V4).
-    
-    Architecture 100% GPU (PyTorch) pour une vitesse temps réel.
-    - Filtre Morphologique : Élimine les micro-points noirs/blancs (Artefacts).
-    - Surface Blur Intelligent : Lisse la peau et le métal sans flouter les bords.
-    - OLED Dynamics : Gestion du contraste pour des noirs profonds et des couleurs vibrantes.
-    - Transfert LAB : Copie l'ambiance de la référence sans casser la lumière.
+    Wan Chroma Mimic - SENTINEL V3.2.
+    Intègre un traitement par paquets (Chunks) pour afficher la progression
+    et protéger la VRAM sur les rendus longs.
     """
     
-    def __init__(self):
-        pass
-
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -22,206 +62,158 @@ class Wan_Chroma_Mimic:
                 "images": ("IMAGE",),
                 "reference_image": ("IMAGE",),
                 
-                "effect_intensity": ("FLOAT", {
-                    "default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05, 
-                    "tooltip": "Force du mimétisme des couleurs."
-                }),
+                "effect_intensity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
                 
-                "oled_contrast": ("FLOAT", {
-                    "default": 0.2, "min": 0.0, "max": 1.0, "step": 0.05, 
-                    "tooltip": "Booste la dynamique (Noirs profonds, Blancs purs). 0.0 = Neutre."
-                }),
+                "smart_limit": ("BOOLEAN", {"default": True, "tooltip": "Empêche le transfert de couleur de brûler l'image."}),
+                "rife_correction": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.1, "tooltip": "Récupère le piqué perdu par l'interpolation."}),
                 
-                "skin_metal_smooth": ("FLOAT", {
-                    "default": 0.4, "min": 0.0, "max": 1.0, "step": 0.05, 
-                    "tooltip": "Lissage des surfaces (enlève le grain). Garde les contours."
-                }),
-                
-                "detail_crispness": ("FLOAT", {
-                    "default": 0.5, "min": 0.0, "max": 2.0, "step": 0.1, 
-                    "tooltip": "Réhausse les micro-détails (Piqué Cinéma)."
-                }),
+                "oled_contrast": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "detail_crispness": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 2.0, "step": 0.1}),
             },
         }
 
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("oled_master_video",)
-    FUNCTION = "apply_gpu_mastering"
+    FUNCTION = "apply_mimic_sentinel"
     CATEGORY = "Wan_Architect/Skynet"
 
     def rgb_to_lab(self, img):
-        # Approximation rapide RGB -> LAB pour GPU
-        # (Suffisant pour le color grading et ultra rapide)
         matrix = torch.tensor([
             [0.412453, 0.357580, 0.180423],
             [0.212671, 0.715160, 0.072169],
             [0.019334, 0.119193, 0.950227]
         ], device=img.device)
         xyz = torch.matmul(img, matrix.T)
-        
-        # Transformation non-linéaire sRGB
         mask = xyz > 0.008856
         xyz[mask] = torch.pow(xyz[mask], 1/3)
         xyz[~mask] = 7.787 * xyz[~mask] + 16/116
-        
         l = 116 * xyz[..., 1] - 16
         a = 500 * (xyz[..., 0] - xyz[..., 1])
         b = 200 * (xyz[..., 1] - xyz[..., 2])
         return torch.stack([l, a, b], dim=-1)
 
     def lab_to_rgb(self, lab):
-        # Approximation rapide LAB -> RGB pour GPU
         l, a, b = lab[..., 0], lab[..., 1], lab[..., 2]
         y = (l + 16) / 116
         x = a / 500 + y
         z = y - b / 200
-        
         xyz = torch.stack([x, y, z], dim=-1)
         mask = xyz > 0.206893
         xyz[mask] = torch.pow(xyz[mask], 3)
         xyz[~mask] = (xyz[~mask] - 16/116) / 7.787
-        
         matrix = torch.tensor([
             [3.240479, -1.537150, -0.498535],
             [-0.969256, 1.875992, 0.041556],
             [0.055648, -0.204043, 1.057311]
         ], device=lab.device)
-        
         rgb = torch.matmul(xyz, matrix.T)
-        return torch.clamp(rgb, 0.0, 1.0)
+        return rgb 
 
     def get_moments(self, tensor):
-        # Calcul Moyenne et Ecart-Type (Mean/Std)
-        # Tensor shape: [Batch, H, W, Channels]
         mean = torch.mean(tensor, dim=(1, 2), keepdim=True)
         std = torch.std(tensor, dim=(1, 2), keepdim=True)
         return mean, std
 
-    def morphological_cleaner(self, img_tensor, strength):
-        """
-        Supprime les micro-anomalies (points noirs/blancs isolés).
-        Simule un filtre Median/Morphologique sur GPU.
-        """
-        if strength <= 0: return img_tensor
-        
-        # Format BCHW pour Conv2d
-        x = img_tensor.movedim(-1, 1)
-        
-        # Operation "Opening" (Supprime les points clairs) suivie de "Closing" (Supprime les points noirs)
-        # On utilise MaxPool (Dilation) et -MaxPool(-x) (Erosion)
-        kernel_size = 3
-        pad = 1
-        
-        # Erosion (Min Filter)
-        eroded = -F.max_pool2d(-x, kernel_size, stride=1, padding=pad)
-        # Dilation (Max Filter)
-        dilated = F.max_pool2d(eroded, kernel_size, stride=1, padding=pad)
-        
-        # Soft Blend pour ne pas perdre trop de détails
-        return torch.lerp(x, dilated, strength * 0.5).movedim(1, -1)
-
-    def smart_surface_blur(self, img_tensor, strength):
-        """
-        Floute les surfaces plates (peau, murs) mais garde les bords nets.
-        """
-        if strength <= 0: return img_tensor
-        
-        x = img_tensor.movedim(-1, 1)
-        
-        # Création d'un masque de bords (Sobel ou Laplacien simplifié)
-        # On utilise la variance locale comme détecteur de bords
-        blurred_guide = F.avg_pool2d(x, 3, stride=1, padding=1)
-        diff = torch.abs(x - blurred_guide)
-        edge_mask = torch.mean(diff, dim=1, keepdim=True)
-        
-        # Normalisation du masque (0 = plat, 1 = bord)
-        edge_mask = torch.clamp(edge_mask * 10.0, 0.0, 1.0)
-        
-        # Flou plus fort pour le lissage
-        smoothed = F.avg_pool2d(x, 5, stride=1, padding=2)
-        
-        # Mélange : Si c'est un bord, on garde l'original. Si c'est plat, on lisse.
-        # Lerp (Lisse, Original, Masque)
-        result = smoothed * (1.0 - edge_mask) + x * edge_mask
-        
-        return torch.lerp(x, result, strength).movedim(1, -1)
-
-    def apply_gpu_mastering(self, images, reference_image, effect_intensity, oled_contrast, skin_metal_smooth, detail_crispness):
+    def apply_mimic_sentinel(self, images, reference_image, effect_intensity, smart_limit, rife_correction, oled_contrast, detail_crispness):
         
         device = images.device
-        total_frames = len(images)
-        print(f"\n>> [CHROMA MIMIC V4] Turbo OLED Mastering on {total_frames} frames (GPU)...")
+        batch_size = images.shape[0]
+        
+        XT_Mouchard_Mimetic.analyze_signal("INPUT CHECK", images)
+        print(f"\033[96m[XT-MIMIC] Starting Real-Time Processing on {batch_size} frames...\033[0m")
 
-        # --- 1. ANALYSE REFERENCE (GPU) ---
-        # Nettoyage et conversion LAB de la référence
+        # 1. ANALYSE REFERENCE (Fait une seule fois pour tout le lot)
         ref_clean = torch.nan_to_num(reference_image[0:1], nan=0.0).to(device)
         ref_lab = self.rgb_to_lab(ref_clean)
-        
-        # Extraction des statistiques de couleur (Mean/Std) de la référence
         ref_mean, ref_std = self.get_moments(ref_lab)
-
-        # Buffer de sortie
-        mastered_frames = []
-
-        for i in range(total_frames):
-            img = images[i:i+1].to(device) # Traitement par batch de 1 pour économiser VRAM
-            
-            # --- 2. DESPECKLE (Suppression points noirs) ---
-            # On applique un nettoyage morphologique léger au début
-            # pour éviter que les points noirs ne soient amplifiés par la suite
-            img = self.morphological_cleaner(img, strength=0.5)
-
-            # --- 3. COLOR TRANSFER (LAB Reinhard) ---
-            # Conversion LAB
-            target_lab = self.rgb_to_lab(img)
-            tgt_mean, tgt_std = self.get_moments(target_lab)
-            
-            # Transfert de statistiques (C'est ça qui copie l'ambiance)
-            # (X - Mean_src) * (Std_ref / Std_src) + Mean_ref
-            # On évite la division par zéro avec un epsilon
-            normalized = (target_lab - tgt_mean) / (tgt_std + 1e-6)
-            mimic_lab = normalized * ref_std + ref_mean
-            
-            # Blend avec l'original selon l'intensité
-            final_lab = torch.lerp(target_lab, mimic_lab, effect_intensity)
-            
-            # Retour RGB
-            final_rgb = self.lab_to_rgb(final_lab)
-
-            # --- 4. SMART SMOOTHING (Peau/Métal) ---
-            # Lissage intelligent qui préserve les contours
-            if skin_metal_smooth > 0:
-                final_rgb = self.smart_surface_blur(final_rgb, skin_metal_smooth)
-
-            # --- 5. OLED CONTRAST (S-Curve) ---
-            if oled_contrast > 0:
-                # Courbe en S pour approfondir les noirs et booster les éclats
-                # Centré sur 0.5
-                final_rgb = final_rgb - 0.5
-                # Formule Sigmoid ajustée
-                contrast_factor = 1.0 + oled_contrast
-                final_rgb = final_rgb * contrast_factor
-                final_rgb = final_rgb + 0.5
-                # Recalage des points noirs (Black Point Compensation)
-                final_rgb = torch.clamp((final_rgb - 0.02) * 1.05, 0.0, 1.0)
-
-            # --- 6. DETAIL CRISPNESS (Unsharp Mask GPU) ---
-            if detail_crispness > 0:
-                # On extrait les détails par différence de flou
-                blurred = F.avg_pool2d(final_rgb.movedim(-1, 1), 3, stride=1, padding=1).movedim(1, -1)
-                details = final_rgb - blurred
-                # On réinjecte les détails
-                final_rgb = final_rgb + (details * detail_crispness)
-
-            # --- 7. FINAL POLISH ---
-            # Sécurité et Clamping
-            final_rgb = torch.nan_to_num(final_rgb, nan=0.0)
-            final_rgb = torch.clamp(final_rgb, 0.0, 1.0)
-            
-            mastered_frames.append(final_rgb)
-
-        # Assemblage final
-        result_tensor = torch.cat(mastered_frames, dim=0)
         
-        print(f">> [CHROMA MIMIC] Rendering Complete (GPU).\n")
-        return (result_tensor,)
+        # Gamut Sentry Global
+        if smart_limit:
+            saturation_check = ref_std[..., 1:] 
+            if saturation_check.mean() > 40.0:
+                ref_std = ref_std * 0.8
+                print(f"   🛡️ \033[33m[Gamut Sentry]\033[0m Reference too saturated. Dampening.")
+
+        # 2. BOUCLE DE TRAITEMENT PAR CHUNKS (PROGRESSION)
+        # On découpe par paquets de 16 frames pour ne pas saturer la VRAM
+        chunk_size = 16 
+        processed_chunks = []
+        
+        # Initialisation de la barre de progression ComfyUI
+        pbar = comfy.utils.ProgressBar(batch_size)
+        
+        for i in range(0, batch_size, chunk_size):
+            # Extraction du paquet
+            chunk = images[i : i + chunk_size].to(device)
+            current_batch_count = chunk.shape[0]
+            
+            # --- LOGIQUE COULEUR (Sur le paquet) ---
+            tgt_lab = self.rgb_to_lab(chunk)
+            tgt_mean, tgt_std = self.get_moments(tgt_lab)
+            
+            normalized = (tgt_lab - tgt_mean) / (tgt_std + 1e-6)
+            mimic_lab = normalized * ref_std + ref_mean
+            final_lab = torch.lerp(tgt_lab, mimic_lab, effect_intensity)
+            final_rgb = self.lab_to_rgb(final_lab)
+            
+            # --- LOGIQUE SENTINEL (Sur le paquet) ---
+            # A. Dampened RIFE Correction
+            if rife_correction > 0 or detail_crispness > 0:
+                total_sharpen = rife_correction + detail_crispness
+                blurred = F.avg_pool2d(final_rgb.movedim(-1, 1), 3, stride=1, padding=1).movedim(1, -1)
+                raw_details = final_rgb - blurred
+                
+                limit_factor = 0.10
+                dampened_details = torch.tanh(raw_details / limit_factor) * limit_factor
+                
+                luma_mask = 1.0 - torch.pow(2.0 * final_rgb.mean(dim=-1, keepdim=True) - 1.0, 4.0)
+                final_rgb = final_rgb + (dampened_details * total_sharpen * luma_mask)
+
+            # B. OLED Contrast
+            if oled_contrast > 0:
+                final_rgb = final_rgb - 0.5
+                final_rgb = final_rgb * (1.0 + oled_contrast)
+                final_rgb = final_rgb + 0.5
+
+            # C. Smart Limiter
+            if smart_limit:
+                threshold = 0.95
+                mask_high = (final_rgb > threshold).float()
+                delta = final_rgb - threshold
+                compressed = threshold + (delta / (1.0 + delta * 4.0)) * (1.0 - threshold)
+                final_rgb = final_rgb * (1.0 - mask_high) + compressed * mask_high
+                final_rgb = torch.clamp(final_rgb, 0.001, 1.0)
+            else:
+                final_rgb = torch.clamp(final_rgb, 0.0, 1.0)
+
+            final_rgb = torch.nan_to_num(final_rgb, 0.0)
+            
+            # Stockage et Progression
+            processed_chunks.append(final_rgb)
+            pbar.update(current_batch_count)
+            
+            # Affichage console tous les 20% pour ne pas spammer
+            percent = int(((i + current_batch_count) / batch_size) * 100)
+            if percent % 20 == 0 or percent == 100:
+                sys.stdout.write(f"\r\033[90m[XT-MIMIC] Processing: {percent}% ({i + current_batch_count}/{batch_size})\033[0m")
+                sys.stdout.flush()
+
+        print("") # Retour à la ligne propre
+        
+        # Assemblage final
+        final_video = torch.cat(processed_chunks, dim=0)
+        
+        XT_Mouchard_Mimetic.analyze_signal("FINAL VALIDATION", final_video)
+
+        return (final_video,)
+
+# ==============================================================================
+# MAPPINGS
+# ==============================================================================
+NODE_CLASS_MAPPINGS = {
+    "Wan_Chroma_Mimic": Wan_Chroma_Mimic
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Wan_Chroma_Mimic": "Wan Chroma Mimic (Progressive)"
+}
