@@ -60,8 +60,8 @@ def render_bottom():
 
 def t800_log(name, status, extra=""):
     """Formatage standardisé des logs."""
-    is_valid = any(x in status for x in ["ONLINE", "ACTIVE", "OPTIMIZED", "DETECTED", "CALIBRATED", "LOCKED"])
-    is_missing = "MISSING" in status
+    is_valid = any(x in status for x in ["ONLINE", "ACTIVE", "OPTIMIZED", "DETECTED", "CALIBRATED", "LOCKED", "READY"])
+    is_missing = "MISSING" in status or "NOT FOUND" in status
     s_col = C_GREEN if is_valid else (C_YELLOW if is_missing else C_RED)
     dots_len = 38 - len(name)
     if dots_len < 2: dots_len = 2
@@ -74,7 +74,7 @@ def t800_log(name, status, extra=""):
 # ==============================================================================
 
 render_top()
-render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.8{C_RESET}", "center")
+render_line(f"{C_RED}CYBERDYNE SYSTEMS CORP. {C_GREY}|{C_RED} SERIES T-800 - MODEL 101 {C_GREY}|{C_RED} V3.9 OMEGA{C_RESET}", "center")
 render_sep()
 
 ascii_art = [
@@ -260,6 +260,57 @@ try:
 except ImportError:
     t800_log("VISUAL SUPREMACY", "NOT FOUND")
     SYSTEM_CHECKLIST["Wan Visual Supremacy"] = False
+
+# ==============================================================================
+# PHASE 10: EXPERIMENTAL PROTOCOLS (OMEGA)
+# ==============================================================================
+render_sep()
+render_line(f"{C_RED}>> WARNING: EXPERIMENTAL PROTOCOLS DETECTED (OMEGA) <<{C_RESET}", "center")
+render_sep()
+
+# 1. Skynet V2 Core (Hybrid Shield)
+try:
+    from .XT404_Skynet_V2 import NODE_CLASS_MAPPINGS as SKY_V2, NODE_DISPLAY_NAME_MAPPINGS as SKY_V2_N
+    NODE_CLASS_MAPPINGS.update(SKY_V2)
+    NODE_DISPLAY_NAME_MAPPINGS.update(SKY_V2_N)
+    t800_log("SKYNET CORE V2 (OMEGA)", "ONLINE", f"{C_MAGENTA}Temporal-Shield: ACTIVE")
+    SYSTEM_CHECKLIST["XT-404 Skynet V2"] = True
+except ImportError:
+    t800_log("SKYNET CORE V2", "NOT FOUND")
+    SYSTEM_CHECKLIST["XT-404 Skynet V2"] = False
+
+# 2. Neural Motion (Physics)
+try:
+    from .wan_neural_motion import NODE_CLASS_MAPPINGS as MOT
+    NODE_CLASS_MAPPINGS.update(MOT)
+    NODE_DISPLAY_NAME_MAPPINGS["Wan_Neural_Motion_Path"] = "Wan Neural Motion Path (Vector)"
+    t800_log("NEURAL MOTION (PHYSICS)", "CALIBRATED")
+    SYSTEM_CHECKLIST["Wan Neural Motion"] = True
+except ImportError:
+    t800_log("NEURAL MOTION", "MISSING")
+    SYSTEM_CHECKLIST["Wan Neural Motion"] = False
+
+# 3. Spectre Chroma (Filter)
+try:
+    from .wan_spectre_chroma import Wan_Spectre_Chroma_Filter
+    NODE_CLASS_MAPPINGS["Wan_Spectre_Chroma_Filter"] = Wan_Spectre_Chroma_Filter
+    NODE_DISPLAY_NAME_MAPPINGS["Wan_Spectre_Chroma_Filter"] = "Wan Spectre Chroma (Anti-Rainbow)"
+    t800_log("SPECTRE CHROMA (FILTER)", "ACTIVE", f"{C_BLUE}FFT-Lock: ON")
+    SYSTEM_CHECKLIST["Wan Spectre Chroma"] = True
+except ImportError:
+    t800_log("SPECTRE CHROMA", "MISSING")
+    SYSTEM_CHECKLIST["Wan Spectre Chroma"] = False
+
+# 4. Infiltration Upscaler (V4)
+try:
+    from .wan_infiltration_upscaler import NODE_CLASS_MAPPINGS as UPSCALER
+    NODE_CLASS_MAPPINGS.update(UPSCALER)
+    NODE_DISPLAY_NAME_MAPPINGS["Wan_Infiltration_Upscaler"] = "Wan Infiltration Upscaler (V4 Omega)"
+    t800_log("INFILTRATION UPSCALER", "READY", f"{C_CYAN}High-Res: LOCKED")
+    SYSTEM_CHECKLIST["Wan Infiltration V4"] = True
+except ImportError:
+    t800_log("INFILTRATION UPSCALER", "OFFLINE")
+    SYSTEM_CHECKLIST["Wan Infiltration V4"] = False
 
 # ==============================================================================
 # RAPPORT FINAL
