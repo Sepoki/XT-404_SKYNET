@@ -116,16 +116,17 @@ class Wan_TX_Interpolator:
             # Boost
             final_latent = latent + (diff * (motion_amp - 1.0) * 2.0)
 
-        # 5. Masking
-        mask = torch.ones((1, video_frames, height // 8, width // 8), device=device)
+        # 5. Masking (FIXED FOR 5D WAN VIDEO)
+        lat_t, lat_h, lat_w = final_latent.shape[2], final_latent.shape[3], final_latent.shape[4]
+        
+        # Create initial 4D mask
+        mask = torch.ones((1, video_frames, lat_h, lat_w), device=device)
         mask[:, 0] = 0.0
         if valid_end: mask[:, -1] = 0.0
         
-        # Adaptation format Wan (4 latents par bloc)
-        # Expansion simplifiée pour robustesse
-        # Le masque doit matcher la dim T du latent
-        target_t = final_latent.shape[2]
-        mask_latent = F.interpolate(mask.unsqueeze(1), size=(target_t, height//8, width//8), mode="nearest-exact").squeeze(1)
+        # Interpolate to match the actual latent temporal dimension
+        # We KEEP the extra dimension (no squeeze) to maintain 5D: [B, C, T, H, W]
+        mask_latent = F.interpolate(mask.unsqueeze(1), size=(lat_t, lat_h, lat_w), mode="nearest-exact")
         
         # Injection
         pos = node_helpers.conditioning_set_values(positive, {"concat_latent_image": final_latent, "concat_mask": mask_latent})
@@ -135,3 +136,4 @@ class Wan_TX_Interpolator:
 
 NODE_CLASS_MAPPINGS = {"Wan_TX_Interpolator": Wan_TX_Interpolator}
 NODE_DISPLAY_NAME_MAPPINGS = {"Wan_TX_Interpolator": "T-X Polymetric Interpolator (Safe)"}
+
